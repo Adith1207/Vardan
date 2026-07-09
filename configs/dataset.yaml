@@ -1,0 +1,27 @@
+# Vardan Dataset Configuration
+
+dataset:
+  name: "DroneRF"
+  # Paths can be specified relative to RAW_DATA_DIR (resolved via paths utility)
+  raw_path: "DroneRF"
+  processed_path: "DroneRF_processed"
+
+parameters:
+  # Sampling rate of raw DroneRF signals (e.g., 100 MHz or 40 MHz depending on RF collection system)
+  sampling_rate: 100000000  # 100 MHz
+  # Length of signal segments in samples (or seconds)
+  segment_length: 2048
+  # Random seed for dataset splitting and operations
+  random_seed: 42
+
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+classes:
+  - "no_drone"
+  - "phantom_4_active"
+  - "phantom_4_video"
+  - "bebop_2"
+  - "ar_drone"

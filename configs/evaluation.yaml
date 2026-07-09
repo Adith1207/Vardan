@@ -1,0 +1,27 @@
+# Vardan Model Evaluation Configuration
+
+metrics:
+  - "accuracy"
+  - "precision_macro"
+  - "recall_macro"
+  - "f1_macro"
+  - "roc_auc"
+  - "confusion_matrix"
+
+thresholds:
+  # General threat classification threshold
+  threat_detection_threshold: 0.5
+  # Per-class custom threshold override (optional)
+  class_thresholds:
+    no_drone: 0.5
+    phantom_4_active: 0.5
+    phantom_4_video: 0.5
+    bebop_2: 0.5
+    ar_drone: 0.5
+
+tinyml_constraints:
+  # Targets for edge / microcontroller deployment
+  max_model_size_kb: 512.0
+  max_ram_usage_kb: 256.0
+  max_flash_usage_kb: 512.0
+  max_inference_latency_ms: 50.0

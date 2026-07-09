@@ -1,0 +1,75 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+
+# Local environments & credentials
+.env
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+experiments/logs/*
+!experiments/logs/.gitkeep
+
+# Data Directories (Exclude large files, keep folder structure via gitkeep)
+data/raw/*
+!data/raw/DroneRF/
+data/raw/DroneRF/*
+!data/raw/DroneRF/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Model Checkpoints & Weights
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+models/baselines/*
+!models/baselines/.gitkeep
+models/vardhan/*
+!models/vardhan/.gitkeep
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.onnx
+
+# Experiment Results (Ignore outputs, keep directory structure)
+results/tables/*
+!results/tables/.gitkeep
+results/plots/*
+!results/plots/.gitkeep
+results/metrics/*
+!results/metrics/.gitkeep
+results/confusion_matrices/*
+!results/confusion_matrices/.gitkeep
+
+# Experiment Runs & Reports
+experiments/runs/*
+!experiments/runs/.gitkeep
+experiments/reports/*
+!experiments/reports/.gitkeep
+
+# ML Experiment Tracking
+wandb/
+mlruns/
+
+# Compressed archives
+*.zip
+*.tar
+*.gz

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛰️ Portable Indigenous Multi-Modal Counter-UAS System
+# 🛰️ Portable Indigenous Multi-Modal Counter-UAS System (Vardan)
 
 ### AI-Powered Lightweight Multi-Sensor Drone Detection Framework for Edge Devices
 
@@ -17,44 +17,19 @@
 **Department of Computer Science & Engineering**  
 **Amrita Vishwa Vidyapeetham**
 
----
-
-*"Towards an Indigenous, Portable and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence."*
+*"Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence."*
 
 </div>
 
 ---
 
-# 📖 Overview
+## 📖 Project Overview
 
-The rapid increase in the use of **Unmanned Aerial Vehicles (UAVs)** has transformed modern warfare, surveillance, logistics, and civilian applications. However, this advancement has also introduced significant security threats through unauthorized drone operations, making reliable drone detection an increasingly important research area.
+The rapid increase in the use of **Unmanned Aerial Vehicles (UAVs)** has introduced security threats through unauthorized drone operations. This project develops **Vardan**, a lightweight, portable, multi-modal counter-UAS framework. By fusing inputs from **Radio Frequency (RF)**, **Acoustic waveforms**, and **Computer Vision feeds**, Vardan increases detection robustness under noise while remaining computationally optimized for microcontroller and embedded-device deployment.
 
-This project aims to develop a **Portable Indigenous Multi-Modal Counter-UAS System** capable of detecting drones using multiple sensing modalities:
-
-- 📡 Radio Frequency (RF)
-- 🎙️ Acoustic Signals
-- 📷 Computer Vision
-
-Unlike conventional single-modality systems, our approach integrates information from multiple sensors to improve robustness under diverse environmental conditions while maintaining suitability for **resource-constrained embedded devices**.
-
----
-
-# 🎯 Project Objectives
-
-- Develop an intelligent RF-based drone detection module.
-- Design an acoustic drone identification system.
-- Build a vision-based drone detection pipeline.
-- Develop an adaptive sensor fusion framework.
-- Optimize models for TinyML deployment.
-- Deploy the complete system on embedded hardware.
-
----
-
-# 🏗️ Overall System Architecture
-
+### System Architecture Diagram
 ```text
                     Portable Counter-UAS System
-
                   ┌───────────────────────────────┐
                   │      Incoming Drone           │
                   └──────────────┬────────────────┘
@@ -62,203 +37,178 @@ Unlike conventional single-modality systems, our approach integrates information
          ┌───────────────────────┼────────────────────────┐
          │                       │                        │
          ▼                       ▼                        ▼
-
-   RF Detection            Acoustic Detection      Vision Detection
-
+    RF Detection            Acoustic Detection      Vision Detection
          │                       │                        │
          └───────────────────────┼────────────────────────┘
                                  │
                                  ▼
-
                     Adaptive Sensor Fusion Engine
-
                                  │
                                  ▼
-
                     Drone / No Drone Classification
-
                                  │
                                  ▼
-
-                       Threat Level & Alert System
+                        Threat Level & Alert System
 ```
 
 ---
 
-# 🚀 Development Roadmap
+## 🎯 Research Goals
 
-This project is being developed incrementally through multiple phases.
+1. **Robust RF Signature Classification**: Detect drone signals and identify flight modes under varying Signal-to-Noise Ratios (SNRs).
+2. **Acoustic Signature Detection**: Implement lightweight, audio-spectrogram classifiers to detect drone rotors in the acoustic near-field.
+3. **Optimized Computer Vision**: Deploy highly optimized, low-latency object classifiers/detectors for visual identification.
+4. **Adaptive Late Fusion**: Fuse probabilities dynamically using entropy-based confidence weighting to manage sensor degradation.
+5. **Edge & TinyML Benchmarking**: Benchmark latency, parameter sizes, RAM, and Flash memory consumption to target ARM Cortex microcontrollers.
+
+---
+
+## 📂 Repository Structure
+
+The project directory tree is organized for research scale and reproducibility:
+
+```text
+Vardan/
+├── pyproject.toml              # Build system, tool configurations, and metadata
+├── requirements.txt            # Python dependencies (PyTorch, Librosa, etc.)
+├── environment.yml             # Conda environment definition
+├── LICENSE                     # MIT License
+├── configs/                    # Hyperparameters and options (No hardcoding)
+│   ├── dataset.yaml            # Dataset details, sampling rates, splits
+│   ├── preprocessing.yaml      # Signal windows, FFT size, wavelets
+│   ├── training.yaml           # Learning rates, scheduler, epochs
+│   ├── evaluation.yaml         # Decision thresholds, TinyML constraints
+│   └── logging.yaml            # Rotating log configurations, ML tracking
+├── data/                       # Data separation (Raw data is read-only)
+│   ├── raw/DroneRF/            # Landing directory for official raw data
+│   ├── interim/                # Temporary files during preprocessing
+│   └── processed/              # Split/transformed datasets (FFT, spectrograms)
+├── notebooks/                  # Single-responsibility research notebooks
+│   ├── 01_DroneRF_Dataset_Exploration.ipynb
+│   ├── 02_RF_Signal_Processing.ipynb
+│   ├── 03_Baseline_Model_Reproduction.ipynb
+│   ├── 04_Benchmarking.ipynb
+│   ├── 05_Vardhan_RF_Module.ipynb
+│   ├── 06_Acoustic_Module.ipynb
+│   ├── 07_Vision_Module.ipynb
+│   ├── 08_Multimodal_Fusion.ipynb
+│   └── 09_Experiments.ipynb
+├── src/                        # Modular python package
+│   ├── data/                   # Data loader helpers
+│   ├── preprocessing/          # Signal transforms (STFT, wavelets)
+│   ├── features/               # Descriptive feature extraction
+│   ├── visualization/          # Spectrogram and signal plotters
+│   ├── models/                 # Baselines and VardhanRFNet architecture
+│   ├── evaluation/             # Metrics calculation (Precision, Recall, F1)
+│   ├── benchmark/              # Latency & memory profiling utilities
+│   ├── fusion/                 # Adaptive late-fusion algorithms
+│   └── utils/                  # Paths resolver and helpers (set_seed)
+├── models/                     # Weights storage directory
+│   ├── baselines/              # Trained weights for baseline models
+│   ├── vardhan/                # Trained weights for Vardan models
+│   └── checkpoints/            # Epoch-wise train checkpoints
+├── experiments/                # Running tracking logs and results
+│   ├── configs/                # Saved configs of individual runs
+│   ├── logs/                   # System outputs / training logs
+│   ├── runs/                   # Local logs / TensorBoard outputs
+│   └── reports/                # Experiment summaries
+├── results/                    # Research output exports (LaTeX/JSON)
+│   ├── tables/                 # Text/LaTeX formatted results tables
+│   ├── plots/                  # Static evaluation graphs
+│   ├── metrics/                # Raw accuracy scores in JSON
+│   └── confusion_matrices/     # Confusion matrix arrays in CSV/JSON
+└── reports/                    # Literature notes and paper draft assets
+```
+
+---
+
+## ⚙️ Installation
+
+We support package management through `conda` or standard `pip`. 
+
+### Method 1: Conda (Recommended for cross-platform stability)
+```bash
+conda env create -f environment.yml
+conda activate vardan
+```
+
+### Method 2: Pip
+```bash
+python -m venv venv
+# On Windows
+venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+---
+
+## 📡 Dataset Configuration
+
+> [!IMPORTANT]
+> **The DroneRF dataset is NOT included in this repository due to licensing restrictions and file size limits.**
+> Users should download the raw data separately from the official source and extract the files into the `data/raw/DroneRF` folder.
+
+Follow the guidelines inside [data/README.md](file:///c:/Users/subsa/Desktop/DRONE/Vardan/data/README.md) to set up raw signals correctly. Path loading must utilize [src/utils/paths.py](file:///c:/Users/subsa/Desktop/DRONE/Vardan/src/utils/paths.py) to resolve locations dynamically.
+
+---
+
+## 🔄 Research Workflow
+
+To replicate research results:
+1. Parse raw signals and explore data configurations using [01_DroneRF_Dataset_Exploration.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/01_DroneRF_Dataset_Exploration.ipynb).
+2. Experiment with wavelets and STFT in [02_RF_Signal_Processing.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/02_RF_Signal_Processing.ipynb).
+3. Replicate baseline results using [03_Baseline_Model_Reproduction.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/03_Baseline_Model_Reproduction.ipynb).
+4. Run edge latency benchmarking with [04_Benchmarking.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/04_Benchmarking.ipynb).
+5. Compare performance of the proposed Vardan model in [05_Vardhan_RF_Module.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/05_Vardhan_RF_Module.ipynb).
+
+Ensure reproducible seeds are set via `set_seed` in [src/utils/helpers.py](file:///c:/Users/subsa/Desktop/DRONE/Vardan/src/utils/helpers.py).
+
+---
+
+## 📅 Milestones & Progress
 
 | Phase | Description | Status |
 |--------|-------------|--------|
-| Phase 1 | RF-Based Drone Detection | 🟡 In Progress |
-| Phase 2 | Acoustic Drone Detection | ⏳ Planned |
-| Phase 3 | Vision-Based Drone Detection | ⏳ Planned |
-| Phase 4 | Multi-Modal Sensor Fusion | ⏳ Planned |
-| Phase 5 | Embedded TinyML Deployment | ⏳ Planned |
-| Phase 6 | Real-World Validation & Optimization | ⏳ Planned |
+| Phase 1 | Repository Scaffolding & Path Resolution | 🟢 Completed |
+| Phase 2 | RF Signal Preprocessing & Baselines | 🟡 In Progress |
+| Phase 3 | Acoustic Signal Classifier | ⏳ Planned |
+| Phase 4 | Vision Object Detector | ⏳ Planned |
+| Phase 5 | Adaptive Multimodal Sensor Fusion | ⏳ Planned |
+| Phase 6 | Edge TinyML Optimization & Deployment | ⏳ Planned |
 
 ---
 
-# 📍 Current Focus
+## 👨‍💻 Research Team
 
-## ✅ Phase 1 — RF-Based Drone Detection
-
-Current research activities include:
-
-- Literature Survey
-- DroneRF Dataset Analysis
-- RF Signal Visualization
-- Signal Preprocessing
-- Lightweight Deep Learning Models
-- Model Benchmarking
-- TinyML Optimization
-- Embedded Deployment
+* **Department of Computer Science & Engineering, Amrita Vishwa Vidyapeetham**
+* **Team 53**:
+  - Adith Narayan G
+  - S J Yuvan Dhurkesh
+  - Subash Santhanam K
+  - Sisthick S
+* **Project Guide**:
+  - Mr. Sumesh A K (Assistant Professor)
 
 ---
 
-# 🧠 Planned Lightweight Architectures
+## 📑 Citation Placeholder
 
-Since the final system is intended for **microcontroller deployment**, model selection prioritizes computational efficiency alongside detection performance.
+When publishing or referencing this project, please cite:
 
-The following architectures will be investigated:
-
-| Model | Purpose |
-|--------|---------|
-| 1D CNN | Baseline RF Classification |
-| DS-CNN | TinyML Optimized CNN |
-| MobileNetV3 Small | Lightweight CNN |
-| MCUNet | Microcontroller-Oriented Neural Network |
-
-Each model will be evaluated using identical datasets and benchmarking protocols.
-
----
-
-# 📊 Evaluation Metrics
-
-Models will be compared using:
-
-- Accuracy
-- Precision
-- Recall
-- F1 Score
-- Confusion Matrix
-- ROC-AUC
-- Inference Time
-- Number of Parameters
-- Model Size
-- RAM Usage
-- Flash Memory Usage
-- TinyML Deployment Feasibility
-
----
-
-# 💻 Technology Stack
-
-## Programming
-
-- Python
-
-## Deep Learning
-
-- PyTorch
-
-## Signal Processing
-
-- NumPy
-- SciPy
-- Librosa
-- Matplotlib
-
-## Machine Learning
-
-- Scikit-Learn
-
-## Embedded AI
-
-- TensorFlow Lite *(Planned)*
-- TensorFlow Lite for Microcontrollers *(Planned)*
-
-## Version Control
-
-- Git
-- GitHub
-
----
-
-# 📅 Project Milestones
-
-- [x] Repository Initialization
-- [ ] Literature Review
-- [ ] DroneRF Dataset Analysis
-- [ ] RF Signal Visualization
-- [ ] Signal Preprocessing
-- [ ] Baseline 1D CNN
-- [ ] Lightweight Model Benchmarking
-- [ ] TinyML Optimization
-- [ ] Embedded Deployment
-- [ ] Acoustic Module
-- [ ] Vision Module
-- [ ] Sensor Fusion Engine
-- [ ] Final Portable Counter-UAS Prototype
-
----
-
-# 🎯 Long-Term Vision
-
-The ultimate objective is to develop a **lightweight, energy-efficient and portable drone detection framework** capable of operating in real-world environments where traditional infrastructure may not be available.
-
-The completed system will integrate RF, Acoustic and Vision sensing to provide robust and reliable drone detection suitable for deployment on embedded platforms.
-
----
-
-# 📂 Repository Structure
-
-This repository will gradually evolve throughout the project.
-
-```text
-Portable-Indigenous-Multimodal-Counter-UAS-System/
-
-│── README.md
-│── LICENSE
-│── .gitignore
-│── requirements.txt
-
-(Additional modules will be added as development progresses.)
+```bibtex
+@article{vardan2026multimodal,
+  title={Towards an Indigenous, Portable and Energy-Efficient Counter-UAS Detection System using Adaptive Multi-Modal Artificial Intelligence},
+  author={Adith Narayan, G. and Yuvan Dhurkesh, S. J. and Subash Santhanam, K. and Sisthick, S. and Sumesh, A. K.},
+  journal={arXiv preprint (Submission in Progress)},
+  year={2026}
+}
 ```
 
 ---
 
-# 👨‍💻 Team
+## 📜 License
 
-**Team 53**
-
-- Adith Narayan G
-- S J Yuvan Dhurkesh
-- Subash Santhanam K
-- Sisthick S
-
-**Guide**
-
-Mr. Sumesh A K  
-Assistant Professor  
-Department of Computer Science & Engineering  
-Amrita Vishwa Vidyapeetham
-
----
-
-# 📜 License
-
-This project is released under the **MIT License**.
-
----
-
-<div align="center">
-
-### 🚧 Research Under Active Development
-
-*"Building the next generation of lightweight, intelligent and portable Counter-UAS systems."*
-
-⭐ Star this repository to follow our progress.
-
-</div>
+This repository is released under the **MIT License**. See [LICENSE](file:///c:/Users/subsa/Desktop/DRONE/Vardan/LICENSE) for details.

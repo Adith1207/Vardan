@@ -1,0 +1,30 @@
+# Set default behavior to automatically normalize line endings.
+* text=auto
+
+# Ensure source files use LF line endings on all OSes
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Keep Windows batch files as CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Jupyter Notebook configurations
+*.ipynb text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.pth binary
+*.pt binary
+*.ckpt binary
+*.h5 binary
+*.onnx binary

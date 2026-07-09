@@ -1,0 +1,25 @@
+# Vardan Model Training Configuration
+
+training:
+  epochs: 50
+  batch_size: 64
+  device: "cuda"  # Options: cuda, cpu, mps, auto
+  num_workers: 4
+  pin_memory: true
+  save_every: 5   # checkpoint frequency in epochs
+
+optimizer:
+  type: "AdamW"   # Options: Adam, AdamW, SGD
+  lr: 0.001
+  weight_decay: 0.0001
+  momentum: 0.9   # for SGD
+
+scheduler:
+  type: "ReduceLROnPlateau"  # Options: ReduceLROnPlateau, CosineAnnealingLR, None
+  factor: 0.5
+  patience: 5
+  min_lr: 0.00001
+
+loss:
+  type: "CrossEntropyLoss"  # Options: CrossEntropyLoss, FocalLoss
+  label_smoothing: 0.1

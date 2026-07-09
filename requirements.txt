@@ -1,0 +1,26 @@
+# Core Machine Learning & Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Scientific Computing & Data Manipulation
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+h5py>=3.8.0
+
+# Signal Processing
+librosa>=0.10.0
+
+# Visualization & Progress Tracking
+matplotlib>=3.7.0
+tqdm>=4.65.0
+
+# Machine Learning & Utilities
+scikit-learn>=1.2.0
+pyyaml>=6.0
+
+# Development, Notebooks & Quality Assurance
+pytest>=7.3.0
+ipykernel>=6.23.0
+black>=23.3.0
+ruff>=0.0.270

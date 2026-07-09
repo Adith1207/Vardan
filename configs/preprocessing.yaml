@@ -1,0 +1,22 @@
+# Vardan Preprocessing Configuration
+
+normalization:
+  type: "standard"  # options: standard, minmax, robust, none
+  epsilon: 1e-8
+
+stft:
+  n_fft: 1024
+  hop_length: 256
+  win_length: 1024
+  window: "hann"
+
+wavelet:
+  wavelet_name: "db4"
+  level: 4
+  mode: "symmetric"
+
+denoising:
+  enabled: true
+  method: "bandpass"  # options: bandpass, wavelet_threshold, none
+  bandpass_low: 1000  # Hz
+  bandpass_high: 50000000  # Hz
