@@ -28,7 +28,6 @@ experiments/logs/*
 
 # Data Directories (Exclude large files, keep folder structure via gitkeep)
 data/raw/*
-data/metadata/*
 !data/raw/DroneRF/
 data/raw/DroneRF/*
 !data/raw/DroneRF/.gitkeep
