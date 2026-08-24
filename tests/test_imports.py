@@ -3,16 +3,32 @@
 import sys
 from pathlib import Path
 
-# Ensure src/ is in python path
-
+# Ensure src/ directory is in sys.path for test execution
 PROJECT_ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT_DIR))
+SRC_DIR = PROJECT_ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+
+def test_config():
+    """Verify config module imports correctly."""
+    from config import NUM_CLASSES, FFT_SIZE, SAMPLING_RATE
+    assert NUM_CLASSES > 0
+    assert FFT_SIZE > 0
+    assert SAMPLING_RATE > 0
+
+
+def test_preprocessing():
+    """Verify preprocessing module imports correctly."""
+    from preprocessing import FFTProcessor, DroneRFPreprocessor, DroneRFLoader
+    assert FFTProcessor is not None
+    assert DroneRFPreprocessor is not None
+    assert DroneRFLoader is not None
 
 
 def test_paths():
     """Verify that the paths utility resolves files relative to the project root."""
-    from src.utils.paths import (
+    from utils.paths import (
         PROJECT_ROOT,
         DATA_DIR,
         RAW_DATA_DIR,
@@ -34,8 +50,8 @@ def test_paths():
 
 def test_configs_load():
     """Verify that YAML configuration files load correctly."""
-    from src.utils.helpers import load_yaml
-    from src.utils.paths import CONFIGS_DIR
+    from utils.helpers import load_yaml
+    from utils.paths import CONFIGS_DIR
     
     dataset_cfg = load_yaml(CONFIGS_DIR / "dataset.yaml")
     assert "dataset" in dataset_cfg
@@ -54,7 +70,7 @@ def test_configs_load():
 
 def test_constants():
     """Verify global constants and maps."""
-    from src.constants import SUPPORTED_MODALITIES, LABEL_MAP
+    from constants import SUPPORTED_MODALITIES, LABEL_MAP
     
     assert "rf" in SUPPORTED_MODALITIES
     assert "acoustic" in SUPPORTED_MODALITIES
@@ -67,8 +83,8 @@ def test_constants():
 def test_models_instantiation():
     """Test model architectures compile and can perform a forward pass."""
     import torch
-    from src.models.baselines import Baseline1DCNN, DSCNN, MobileNetV3Small
-    from src.models.vardhan import VardhanRFNet
+    from models.baselines import Baseline1DCNN, DSCNN, MobileNetV3Small
+    from models.vardhan import VardhanRFNet
     
     # Check 1D waveform baselines
     x_1d = torch.randn(2, 2, 2048)  # batch size 2, 2 channels, 2048 sequence length

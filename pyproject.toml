@@ -44,6 +44,7 @@ dev = [
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+py-modules = ["config", "constants"]
 packages = ["data", "preprocessing", "features", "visualization", "models", "evaluation", "benchmark", "fusion", "utils"]
 
 [tool.black]

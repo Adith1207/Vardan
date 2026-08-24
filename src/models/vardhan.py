@@ -28,7 +28,7 @@ class VardhanRFNet(nn.Module):
         self.branch1 = nn.Sequential(
             nn.Conv1d(in_channels, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv1d(16, 32, kernel_size=3, padding=1, dilation=2)  # Dilated
+            nn.Conv1d(16, 32, kernel_size=3, padding=2, dilation=2)  # Dilated
         )
         
         self.branch2 = nn.Sequential(
