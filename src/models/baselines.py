@@ -119,3 +119,43 @@ class MobileNetV3Small(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), -1)
         return self.classifier(x)
+
+
+class FGCS2019DNN(nn.Module):
+    """Deep Neural Network baseline from FGCS 2019 for DroneRF.
+    
+    Architecture:
+    Input: 2048
+    Linear 2048 -> 256
+    ReLU
+    Linear 256 -> 128
+    ReLU
+    Linear 128 -> 64
+    ReLU
+    Linear 64 -> Output
+    Sigmoid
+    """
+
+    def __init__(self, in_features: int = 2048, num_classes: int = 4):
+        super().__init__()
+        if not HAS_TORCH:
+            return
+            
+        self.fc1 = nn.Linear(in_features, 256)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(256, 128)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(128, 64)
+        self.relu3 = nn.ReLU()
+        self.fc4 = nn.Linear(64, num_classes)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        """Forward pass. Shape of x: (batch_size, in_features)."""
+        if not HAS_TORCH:
+            return x
+        x = self.relu1(self.fc1(x))
+        x = self.relu2(self.fc2(x))
+        x = self.relu3(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
+        return x
