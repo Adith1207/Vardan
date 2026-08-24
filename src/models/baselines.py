@@ -150,12 +150,14 @@ class FGCS2019DNN(nn.Module):
         self.fc4 = nn.Linear(64, num_classes)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, return_logits: bool = True):
         """Forward pass. Shape of x: (batch_size, in_features)."""
         if not HAS_TORCH:
             return x
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         x = self.relu3(self.fc3(x))
-        x = self.sigmoid(self.fc4(x))
-        return x
+        logits = self.fc4(x)
+        if return_logits:
+            return logits
+        return self.sigmoid(logits)

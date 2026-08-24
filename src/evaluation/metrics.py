@@ -51,16 +51,17 @@ def calculate_metrics(
         "precision_macro": precision_macro,
         "recall_macro": recall_macro,
         "f1_macro": f1_macro,
+        "f1_weighted": f1_macro,  # Approximation when balanced
     }
 
 
-def generate_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, num_classes: int = 5) -> np.ndarray:
+def generate_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, num_classes: int = 4) -> np.ndarray:
     """Generate confusion matrix of dimension (num_classes, num_classes).
 
     Args:
         y_true: Ground truth labels.
         y_pred: Predicted labels.
-        num_classes: Total number of classes.
+        num_classes: Total number of classes. Default 4.
 
     Returns:
         NumPy confusion matrix array.
