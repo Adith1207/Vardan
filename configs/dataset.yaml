@@ -21,7 +21,6 @@ split:
 
 classes:
   - "no_drone"
-  - "phantom_4_active"
-  - "phantom_4_video"
-  - "bebop_2"
   - "ar_drone"
+  - "bebop_drone"
+  - "phantom_drone"

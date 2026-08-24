@@ -15,7 +15,7 @@ except ImportError:
 class Baseline1DCNN(nn.Module):
     """Standard 1D Convolutional Neural Network baseline for raw RF waveform input."""
 
-    def __init__(self, in_channels: int = 2, num_classes: int = 5, seq_length: int = 2048):
+    def __init__(self, in_channels: int = 2, num_classes: int = 4, seq_length: int = 2048):
         super().__init__()
         if not HAS_TORCH:
             return
@@ -52,7 +52,7 @@ class Baseline1DCNN(nn.Module):
 class DSCNN(nn.Module):
     """Depthwise Separable Convolutional Neural Network baseline (TinyML optimized)."""
 
-    def __init__(self, in_channels: int = 2, num_classes: int = 5, seq_length: int = 2048):
+    def __init__(self, in_channels: int = 2, num_classes: int = 4, seq_length: int = 2048):
         super().__init__()
         if not HAS_TORCH:
             return
@@ -90,7 +90,7 @@ class DSCNN(nn.Module):
 class MobileNetV3Small(nn.Module):
     """Lightweight MobileNetV3-based classifier for 2D spectrogram inputs."""
 
-    def __init__(self, num_classes: int = 5):
+    def __init__(self, num_classes: int = 4):
         super().__init__()
         if not HAS_TORCH:
             return

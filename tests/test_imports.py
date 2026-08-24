@@ -57,7 +57,7 @@ def test_configs_load():
     assert "dataset" in dataset_cfg
     assert dataset_cfg["dataset"]["name"] == "DroneRF"
     assert "classes" in dataset_cfg
-    assert len(dataset_cfg["classes"]) == 5
+    assert len(dataset_cfg["classes"]) == 4
     
     preprocessing_cfg = load_yaml(CONFIGS_DIR / "preprocessing.yaml")
     assert "stft" in preprocessing_cfg
@@ -77,7 +77,7 @@ def test_constants():
     assert "vision" in SUPPORTED_MODALITIES
     
     assert LABEL_MAP[0] == "no_drone"
-    assert len(LABEL_MAP) == 5
+    assert len(LABEL_MAP) == 4
 
 
 def test_models_instantiation():
@@ -89,21 +89,22 @@ def test_models_instantiation():
     # Check 1D waveform baselines
     x_1d = torch.randn(2, 2, 2048)  # batch size 2, 2 channels, 2048 sequence length
     
-    model_1d = Baseline1DCNN(in_channels=2, num_classes=5, seq_length=2048)
+    model_1d = Baseline1DCNN(in_channels=2, num_classes=4, seq_length=2048)
     out_1d = model_1d(x_1d)
-    assert out_1d.shape == (2, 5)
+    assert out_1d.shape == (2, 4)
     
-    model_dscnn = DSCNN(in_channels=2, num_classes=5, seq_length=2048)
+    model_dscnn = DSCNN(in_channels=2, num_classes=4, seq_length=2048)
     out_dscnn = model_dscnn(x_1d)
-    assert out_dscnn.shape == (2, 5)
+    assert out_dscnn.shape == (2, 4)
     
     # Check custom Vardhan model
-    model_vardhan = VardhanRFNet(in_channels=2, num_classes=5, seq_length=2048)
+    model_vardhan = VardhanRFNet(in_channels=2, num_classes=4, seq_length=2048)
     out_vardhan = model_vardhan(x_1d)
-    assert out_vardhan.shape == (2, 5)
+    assert out_vardhan.shape == (2, 4)
     
     # Check 2D spectrogram baseline
     x_2d = torch.randn(2, 1, 513, 100)  # batch size 2, 1 channel, 513 frequency bins, 100 time frames
-    model_2d = MobileNetV3Small(num_classes=5)
+    model_2d = MobileNetV3Small(num_classes=4)
     out_2d = model_2d(x_2d)
-    assert out_2d.shape == (2, 5)
+    assert out_2d.shape == (2, 4)
+

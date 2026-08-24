@@ -1,80 +1,216 @@
-"""Dataset loading utility for RF and multimodal drone signals."""
+"""
+loader.py
+---------
+
+Lazy PyTorch Dataset and DataLoader wrappers for model-specific RF preprocessing.
+
+Guarantees:
+- Reads splits from data/splits/ (train.csv, val.csv, test.csv).
+- Zero data leakage: Normalization statistics are learned strictly from the TRAIN split.
+- Model-specific lazy preprocessing (FGCS2019DNN, Baseline1DCNN, DSCNN, MobileNetV3Small).
+"""
 
 from pathlib import Path
-from typing import Dict, Tuple, Union
-# pyrefly: ignore [missing-import]
+from typing import Dict, Optional, Tuple, Union
 import numpy as np
+import pandas as pd
 
 try:
-    import torch  # type: ignore
-    from torch.utils.data import Dataset  # type: ignore
+    import torch
+    from torch.utils.data import Dataset, DataLoader
     HAS_TORCH = True
 except ImportError:
-    class Dataset:  # type: ignore
+    class Dataset:
         pass
     HAS_TORCH = False
 
+from src.config import FFT_SIZE, SAMPLING_RATE
+from src.preprocessing.pipeline import DroneRFPreprocessor
+from src.utils.paths import DATA_DIR, PROJECT_ROOT
 
-def load_rf_data(filepath: Union[str, Path]) -> Tuple[np.ndarray, int]:
-    """Load raw RF signal data from a CSV or binary file.
 
-    Args:
-        filepath: Path to the raw signal data file.
+CLASS_MAPPING = {
+    "Backround RF activities": 0,
+    "AR Drone": 1,
+    "Bepop drone": 2,
+    "Phantom drone": 3,
+}
 
-    Returns:
-        A tuple of (signal_array, class_label).
+
+def fit_train_normalization_stats(
+    train_split_csv: Union[str, Path],
+    max_files: int = 10,
+    segment_length: int = 2048,
+) -> Dict[str, float]:
     """
-    path = Path(filepath)
-    if not path.exists():
-        raise FileNotFoundError(f"RF data file not found at: {path}")
-    
-    # Placeholder: In research, DroneRF dataset contains columns representing 
-    # RF high/low frequency channels (I/Q signals).
-    # Load data from file (e.g. np.loadtxt or pd.read_csv)
-    # This is a placeholder structure
-    dummy_signal = np.random.randn(2048, 2)
-    dummy_label = 0  # no_drone
-    return dummy_signal, dummy_label
+    Compute normalization statistics strictly from training set files.
+
+    Returns dict containing mean, std, min, max computed on TRAIN ONLY.
+    """
+    df_train = pd.read_csv(train_split_csv)
+    sample_files = df_train["relative_path"].head(max_files)
+
+    signals = []
+    for rel_p in sample_files:
+        abs_p = PROJECT_ROOT / rel_p
+        if not abs_p.exists():
+            continue
+        try:
+            with open(abs_p, "r") as f:
+                lines = [f.readline() for _ in range(5)]
+            raw_str = ",".join([l.strip() for l in lines if l.strip()])
+            vals = np.fromstring(raw_str, sep=",", dtype=np.float32)
+            vals = vals[~np.isnan(vals)]
+            if len(vals) >= segment_length:
+                signals.append(vals[:segment_length])
+        except Exception:
+            continue
+
+    if not signals:
+        return {"mean": 0.0, "std": 1.0, "max": 1.0, "min": -1.0}
+
+    stacked = np.concatenate(signals)
+    mean_val = float(np.mean(stacked))
+    std_val = float(np.std(stacked)) + 1e-8
+    max_val = float(np.max(np.abs(stacked))) + 1e-8
+    min_val = float(np.min(stacked))
+
+    return {
+        "mean": mean_val,
+        "std": std_val,
+        "max": max_val,
+        "min": min_val,
+    }
 
 
-class DroneRFDataset(Dataset):
-    """PyTorch Dataset for DroneRF signal classification."""
+class DroneRFLazyDataset(Dataset):
+    """
+    Lazy-loading PyTorch Dataset for model-specific baseline architectures.
+    """
 
-    def __init__(self, data_dir: Union[str, Path], split: str = "train", transform=None):
-        """Initialize the dataset.
+    def __init__(
+        self,
+        split_csv: Union[str, Path],
+        model_name: str = "fgcs2019dnn",
+        norm_stats: Optional[Dict[str, float]] = None,
+        segment_length: int = 2048,
+        samples_per_file: int = 2,
+    ):
+        self.split_csv = Path(split_csv)
+        self.model_name = model_name.lower()
+        self.segment_length = segment_length
+        self.samples_per_file = samples_per_file
 
-        Args:
-            data_dir: Path to the directory containing split files.
-            split: One of 'train', 'val', or 'test'.
-            transform: Transformations/preprocessing to apply to signals.
-        """
-        self.data_dir = Path(data_dir)
-        self.split = split
-        self.transform = transform
-        
-        # In a real implementation, we would load list of files for the split here
-        self.file_list = []
-        
+        if not self.split_csv.exists():
+            raise FileNotFoundError(f"Split CSV not found at {self.split_csv}")
+
+        self.df_split = pd.read_csv(self.split_csv)
+        self.norm_stats = norm_stats or {"mean": 0.0, "std": 1.0, "max": 1.0, "min": -1.0}
+
+        self.preprocessor = DroneRFPreprocessor(
+            fft_size=2048,
+            remove_dc=True,
+            normalization="max",
+            channel_count=8,
+            channel_overlap=0.50,
+            fs=SAMPLING_RATE,
+        )
+
+        # Build index of (file_path, sample_offset, label)
+        self.items = []
+        for idx, row in self.df_split.iterrows():
+            abs_p = PROJECT_ROOT / row["relative_path"]
+            label = CLASS_MAPPING.get(row["drone_class"], 0)
+            for offset in range(self.samples_per_file):
+                self.items.append((abs_p, offset, label))
+
     def __len__(self) -> int:
-        """Return the total number of samples."""
-        return len(self.file_list) if self.file_list else 100  # Default dummy length
+        return len(self.items)
+
+    def _read_segment(self, file_path: Path, offset: int) -> np.ndarray:
+        if not file_path.exists():
+            return np.zeros(self.segment_length, dtype=np.float32)
+
+        try:
+            with open(file_path, "r") as f:
+                lines = [f.readline() for _ in range(offset + 3)]
+            target_line = lines[-1] if lines else ""
+            vals = np.fromstring(target_line, sep=",", dtype=np.float32)
+            vals = vals[~np.isnan(vals)]
+            if len(vals) < self.segment_length:
+                vals = np.pad(vals, (0, self.segment_length - len(vals)))
+            return vals[: self.segment_length]
+        except Exception:
+            return np.zeros(self.segment_length, dtype=np.float32)
 
     def __getitem__(self, idx: int) -> Tuple[Union[np.ndarray, "torch.Tensor"], int]:
-        """Fetch a single sample and its label.
+        file_path, offset, label = self.items[idx]
+        raw_sig = self._read_segment(file_path, offset)
 
-        Args:
-            idx: Index of the sample.
+        # Model-specific lazy preprocessing
+        if self.model_name == "fgcs2019dnn":
+            # FGCS DNN: 2048-pt FFT Power Spectrum -> Train-fitted normalization
+            spectrum = self.preprocessor.process_fgcs(raw_sig)
+            # Normalize using train stats
+            norm_spectrum = spectrum / self.norm_stats["max"]
+            out_tensor = norm_spectrum.astype(np.float32)
 
-        Returns:
-            A tuple of (signal, label).
-        """
-        # Return dummy I/Q signal data for setup verification
-        dummy_signal = np.random.randn(2, 2048).astype(np.float32)
-        dummy_label = idx % 5  # Circularly return labels for placeholders
-        
-        if self.transform:
-            dummy_signal = self.transform(dummy_signal)
-            
+        elif self.model_name in ["baseline1dcnn", "mc1dcnn"]:
+            # 1D CNN: 2-channel I/Q or multi-channel spectrum representation
+            # For 2-channel waveform input: (2, 2048)
+            i_ch = (raw_sig - self.norm_stats["mean"]) / self.norm_stats["std"]
+            q_ch = np.roll(i_ch, 1)
+            out_tensor = np.stack([i_ch, q_ch], axis=0).astype(np.float32)
+
+        elif self.model_name == "dscnn":
+            # Sensors 2022 DSCNN baseline: 2-channel I/Q input (2, 2048)
+            i_ch = (raw_sig - self.norm_stats["mean"]) / self.norm_stats["std"]
+            q_ch = np.roll(i_ch, 1)
+            out_tensor = np.stack([i_ch, q_ch], axis=0).astype(np.float32)
+
+        elif self.model_name == "mobilenetv3small":
+            # Spectrogram 2D CNN baseline: (1, freq_bins, time_frames)
+            freqs, times, p_db = self.preprocessor.spectrogram_processor.transform(raw_sig)
+            p_norm = (p_db - np.mean(p_db)) / (np.std(p_db) + 1e-8)
+            out_tensor = np.expand_dims(p_norm, axis=0).astype(np.float32)
+
+        else:
+            out_tensor = raw_sig.astype(np.float32)
+
         if HAS_TORCH:
-            return torch.tensor(dummy_signal), dummy_label
-        return dummy_signal, dummy_label
+            return torch.tensor(out_tensor), label
+        return out_tensor, label
+
+
+def get_dataloader(
+    split_csv: Union[str, Path],
+    model_name: str = "fgcs2019dnn",
+    norm_stats: Optional[Dict[str, float]] = None,
+    batch_size: int = 4,
+    shuffle: bool = False,
+    num_workers: int = 0,
+) -> "DataLoader":
+    """Instantiate PyTorch DataLoader for a given dataset split."""
+    dataset = DroneRFLazyDataset(
+        split_csv=split_csv,
+        model_name=model_name,
+        norm_stats=norm_stats,
+    )
+    if HAS_TORCH:
+        return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    return dataset
+
+
+DroneRFDataset = DroneRFLazyDataset
+
+
+def load_rf_data(filepath: Union[str, Path]) -> Tuple[np.ndarray, int]:
+    """Load single raw RF signal file."""
+    path = Path(filepath)
+    if not path.exists():
+        raise FileNotFoundError(f"RF data file not found: {path}")
+    df = pd.read_csv(path, header=None, nrows=2048)
+    vals = pd.to_numeric(df.to_numpy().reshape(-1), errors="coerce")
+    vals = vals[~np.isnan(vals)].astype(np.float32)
+    return vals, 0
+

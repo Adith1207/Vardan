@@ -19,7 +19,7 @@ class VardhanRFNet(nn.Module):
     feature aggregation, and global pooling for parameter efficiency.
     """
 
-    def __init__(self, in_channels: int = 2, num_classes: int = 5, seq_length: int = 2048):
+    def __init__(self, in_channels: int = 2, num_classes: int = 4, seq_length: int = 2048):
         super().__init__()
         if not HAS_TORCH:
             return

@@ -1,0 +1,46 @@
+# Baseline Preprocessing Specification and Classification
+# Categories:
+# A = Explicitly specified by source paper
+# B = Necessary implementation detail inferred from paper
+# C = Experimental design choice
+
+fgcs2019dnn:
+  source_paper: "FGCS 2019 (EZ-DroneRF / Allahham et al.)"
+  input_representation: "2048-point Power Spectrum"
+  classification:
+    zero_centering: "A (Explicitly specified: DC offset removed before FFT)"
+    fft_size: "A (Explicitly specified: 2048-point FFT)"
+    representation: "A (Explicitly specified: Power spectrum magnitude squared)"
+    normalization: "B (Inferred implementation detail: Max magnitude normalization)"
+  input_dimension: [2048]
+  output_dimension: [4]
+
+baseline1dcnn:
+  source_paper: "Multi-channel 1D CNN Baseline"
+  input_representation: "2-channel I/Q RF Waveform or Sub-band Spectrum"
+  classification:
+    representation: "A (Explicitly specified: Multi-channel RF waveform input)"
+    channel_count: "B (Inferred implementation detail: 2 I/Q channels or 8 sub-bands)"
+    normalization: "C (Experimental design choice: Train-fitted z-score normalization)"
+  input_dimension: [2, 2048]
+  output_dimension: [4]
+
+dscnn:
+  source_paper: "Sensors 2022 CNN Baseline (TinyML / DSCNN)"
+  input_representation: "2-channel I/Q / Log-compressed Waveform"
+  classification:
+    architecture: "A (Explicitly specified: Depthwise Separable Conv1D)"
+    compression: "B (Inferred implementation detail: Log dynamic range compression)"
+    normalization: "C (Experimental design choice: Train-fitted z-score normalization)"
+  input_dimension: [2, 2048]
+  output_dimension: [4]
+
+mobilenetv3small:
+  source_paper: "Spectrogram 2D CNN Baseline"
+  input_representation: "STFT Log Spectrogram Matrix"
+  classification:
+    stft_window: "A (Explicitly specified: n_fft=1024, hop=256, Hann window)"
+    scaling: "B (Inferred implementation detail: 20*log10 log-scaling)"
+    normalization: "C (Experimental design choice: Per-channel z-score normalization)"
+  input_dimension: [1, 65, 61]
+  output_dimension: [4]
