@@ -20,10 +20,10 @@ Strict Requirements:
 """
 
 import json
-import platform
 import sys
 import time
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -35,22 +35,22 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 import torch
-import torch.nn as nn
-from src.benchmark.bench import benchmark_inference_latency, profile_model_footprint
-from src.config import NUM_CLASSES
-from src.constants import LABEL_MAP
-from src.data.loader import CLASS_MAPPING, fit_train_normalization_stats, get_dataloader
-from src.evaluation.metrics import calculate_metrics, generate_confusion_matrix
-from src.models.model_factory import get_model
-from src.models.trainer import BaselineTrainer, set_reproducible_seed
-from src.utils.paths import DATA_DIR, RESULTS_DIR
+
+from benchmark.bench import benchmark_inference_latency, profile_model_footprint
+from config import NUM_CLASSES
+from constants import LABEL_MAP
+from data.loader import CLASS_MAPPING, fit_train_normalization_stats, get_dataloader
+from evaluation.metrics import calculate_metrics, generate_confusion_matrix
+from models.model_factory import get_model
+from models.trainer import BaselineTrainer, set_reproducible_seed
+from utils.paths import DATA_DIR, RESULTS_DIR
 
 
 def run_preflight_checks(train_csv, val_csv, test_csv) -> bool:
     print("=================================================================")
     print("      AUTOMATED PREFLIGHT VERIFICATION CHECK                     ")
     print("=================================================================")
-    
+
     assert train_csv.exists(), f"Missing {train_csv}"
     assert val_csv.exists(), f"Missing {val_csv}"
     assert test_csv.exists(), f"Missing {test_csv}"
@@ -72,17 +72,17 @@ def run_preflight_checks(train_csv, val_csv, test_csv) -> bool:
     assert len(tr_paths & va_paths) == 0, "Train and Val overlap!"
     assert len(tr_paths & te_paths) == 0, "Train and Test overlap!"
     assert len(va_paths & te_paths) == 0, "Val and Test overlap!"
-    print("✓ Zero file overlap verified.")
+    print("[OK] Zero file overlap verified.")
 
     assert NUM_CLASSES == 4, f"NUM_CLASSES must be 4, got {NUM_CLASSES}"
     assert CLASS_MAPPING == {'Backround RF activities': 0, 'AR Drone': 1, 'Bepop drone': 2, 'Phantom drone': 3}
-    print("✓ Canonical 4 classes verified.")
+    print("[OK] Canonical 4 classes verified.")
 
     # Fit train-only norm stats
     train_stats = fit_train_normalization_stats(train_csv, max_files=10)
-    print(f"✓ Train-only normalization stats: {train_stats}")
+    print(f"[OK] Train-only normalization stats: {train_stats}")
 
-    print("✓ All 22 preflight checks PASSED cleanly!\n")
+    print("[OK] All 22 preflight checks PASSED cleanly!\n")
     return True, train_stats
 
 
@@ -216,7 +216,7 @@ def execute_full_baseline_training():
                 )
 
         train_time = time.time() - start_time
-        print(f"   ✓ Training finished in {train_time:.2f}s. Best Epoch: {best_epoch} (Val Loss: {best_val_loss:.4f})")
+        print(f"   [OK] Training finished in {train_time:.2f}s. Best Epoch: {best_epoch} (Val Loss: {best_val_loss:.4f})")
 
         # ---------------------------------------------------------------
         # SINGLE TEST EVALUATION USING BEST CHECKPOINT
@@ -249,7 +249,7 @@ def execute_full_baseline_training():
             tp = int(np.sum((np.array(all_targets) == c_id) & (np.array(all_preds) == c_id)))
             fp = int(np.sum((np.array(all_targets) != c_id) & (np.array(all_preds) == c_id)))
             fn = int(np.sum((np.array(all_targets) == c_id) & (np.array(all_preds) != c_id)))
-            
+
             p = tp / (tp + fp) if (tp + fp) > 0 else 0.0
             r = tp / (tp + fn) if (tp + fn) > 0 else 0.0
             f1 = 2 * p * r / (p + r) if (p + r) > 0 else 0.0
@@ -296,15 +296,15 @@ def execute_full_baseline_training():
 
         summary_results.append(final_metrics_data)
 
-        print(f"   ✓ TEST EVALUATION COMPLETED: Acc={test_metrics['accuracy']:.4f}, Macro-F1={test_metrics['f1_macro']:.4f}")
-        print(f"   ✓ Exported baseline results to {out_dir}\n")
+        print(f"   [OK] TEST EVALUATION COMPLETED: Acc={test_metrics['accuracy']:.4f}, Macro-F1={test_metrics['f1_macro']:.4f}")
+        print(f"   [OK] Exported baseline results to {out_dir}\n")
 
     # Save summary matrix
     with open(RESULTS_DIR / "baselines" / "summary_matrix.json", "w") as f:
         json.dump(summary_results, f, indent=2)
 
     print("=================================================================")
-    print(" ✓ ALL FOUR BASELINE MODELS FULLY TRAINED AND EVALUATED!         ")
+    print(" [OK] ALL FOUR BASELINE MODELS FULLY TRAINED AND EVALUATED!         ")
     print("=================================================================")
 
 

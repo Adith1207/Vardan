@@ -1,6 +1,6 @@
 """Adaptive Multi-Sensor Fusion Engine."""
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import numpy as np
 
 

@@ -1,7 +1,7 @@
 """Model factory for instantiating baseline and custom models."""
 
 import torch.nn as nn
-from src.config import NUM_CLASSES
+from config import NUM_CLASSES
 from .baselines import Baseline1DCNN, DSCNN, MobileNetV3Small, FGCS2019DNN
 from .vardhan import VardhanRFNet
 

@@ -22,10 +22,10 @@ def calculate_metrics(
         
     accuracy = np.sum(y_true == y_pred) / total
     
-    # Calculate precision, recall, and F1 macro
     classes = np.unique(y_true)
     precisions = []
     recalls = []
+    f1s = []
     
     for c in classes:
         tp = np.sum((y_true == c) & (y_pred == c))
@@ -34,17 +34,15 @@ def calculate_metrics(
         
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
         
         precisions.append(precision)
         recalls.append(recall)
+        f1s.append(f1)
         
     precision_macro = float(np.mean(precisions)) if precisions else 0.0
     recall_macro = float(np.mean(recalls)) if recalls else 0.0
-    
-    if (precision_macro + recall_macro) > 0:
-        f1_macro = 2 * (precision_macro * recall_macro) / (precision_macro + recall_macro)
-    else:
-        f1_macro = 0.0
+    f1_macro = float(np.mean(f1s)) if f1s else 0.0
         
     return {
         "accuracy": float(accuracy),

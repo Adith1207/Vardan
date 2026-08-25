@@ -12,10 +12,8 @@ Guarantees:
 - Best checkpoint saving and JSON experiment history logging.
 """
 
-import json
-import time
-from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 
 try:
@@ -27,9 +25,8 @@ try:
 except ImportError:
     HAS_TORCH = False
 
-from src.config import NUM_CLASSES
-from src.evaluation.metrics import calculate_metrics, generate_confusion_matrix
-from src.utils.paths import CHECKPOINTS_DIR, EXPERIMENTS_DIR, PROJECT_ROOT
+from evaluation.metrics import calculate_metrics
+from utils.paths import CHECKPOINTS_DIR
 
 
 def set_reproducible_seed(seed: int = 42) -> None:
@@ -198,7 +195,7 @@ class BaselineTrainer:
                 )
 
         assert ckpt_path.exists(), f"Smoke test checkpoint not created at {ckpt_path}"
-        print(f"   ✓ Smoke test completed successfully! Saved checkpoint to {ckpt_path.name}")
+        print(f"   [OK] Smoke test completed successfully! Saved checkpoint to {ckpt_path.name}")
 
         return {
             "model_name": self.model_name,

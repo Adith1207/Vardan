@@ -27,12 +27,12 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 import torch
-from src.config import NUM_CLASSES
-from src.constants import LABEL_MAP
-from src.data.loader import CLASS_MAPPING, DroneRFLazyDataset, fit_train_normalization_stats, get_dataloader
-from src.models.model_factory import get_model
-from src.preprocessing.pipeline import DroneRFPreprocessor
-from src.utils.paths import DATA_DIR, PROCESSED_DATA_DIR
+from config import NUM_CLASSES
+from constants import LABEL_MAP
+from data.loader import CLASS_MAPPING, DroneRFLazyDataset, fit_train_normalization_stats, get_dataloader
+from models.model_factory import get_model
+from preprocessing.pipeline import DroneRFPreprocessor
+from utils.paths import DATA_DIR, PROCESSED_DATA_DIR
 
 
 def verify_experimental_preprocessing():
@@ -73,7 +73,7 @@ def verify_experimental_preprocessing():
     print(f"   - Val Files:   {len(df_val)}")
     print(f"   - Test Files:  {len(df_test)}")
     print(f"   - Total Files: {total_files}")
-    print("   ✓ Verified 0 file overlap between Train, Validation, and Test splits.")
+    print("   [OK] Verified 0 file overlap between Train, Validation, and Test splits.")
 
     # -------------------------------------------------------------------
     # 2. CLASS DISTRIBUTION PER SPLIT
@@ -92,7 +92,7 @@ def verify_experimental_preprocessing():
         assert te_c > 0, f"{drone_cls} missing in Test split!"
         print(f"{drone_cls:24s} | {tr_c:5d} | {va_c:3d} | {te_c:4d} | {tot_c:5d}")
     print("-----------------------------------------------------")
-    print("   ✓ Verified: Every class exists in Train, Validation, AND Test splits.")
+    print("   [OK] Verified: Every class exists in Train, Validation, AND Test splits.")
 
     # -------------------------------------------------------------------
     # 3. CANONICAL LABEL MAPPING & NUM_CLASSES = 4
@@ -103,7 +103,7 @@ def verify_experimental_preprocessing():
     for idx, name in LABEL_MAP.items():
         print(f"   - Label {idx}: {name}")
     assert set(CLASS_MAPPING.values()) == {0, 1, 2, 3}, "Label indices must be in {0, 1, 2, 3}"
-    print("   ✓ Verified: NUM_CLASSES = 4 everywhere; all labels ∈ {0, 1, 2, 3}.")
+    print("   [OK] Verified: NUM_CLASSES = 4 everywhere; all labels in {0, 1, 2, 3}.")
 
     # -------------------------------------------------------------------
     # 4. PROGRAMMATIC DATA LEAKAGE TEST
@@ -112,15 +112,15 @@ def verify_experimental_preprocessing():
     train_stats = fit_train_normalization_stats(train_csv, max_files=10)
     print(f"   - Learned Train Stats: Mean={train_stats['mean']:.6f}, Std={train_stats['std']:.6f}, Max={train_stats['max']:.6f}, Min={train_stats['min']:.6f}")
 
-    # Instantiate datasets for Train, Val, Test using train_stats
-    ds_train = DroneRFLazyDataset(train_csv, norm_stats=train_stats)
-    ds_val = DroneRFLazyDataset(val_csv, norm_stats=train_stats)
-    ds_test = DroneRFLazyDataset(test_csv, norm_stats=train_stats)
+    # Instantiate datasets for Train, Val, Test using train_stats in mock mode
+    ds_train = DroneRFLazyDataset(train_csv, norm_stats=train_stats, mock=True)
+    ds_val = DroneRFLazyDataset(val_csv, norm_stats=train_stats, mock=True)
+    ds_test = DroneRFLazyDataset(test_csv, norm_stats=train_stats, mock=True)
 
     # Verify that ds_val and ds_test have identical norm_stats to ds_train and did NOT modify them
     assert ds_val.norm_stats == train_stats, "ERROR: Val dataset modified normalization stats!"
     assert ds_test.norm_stats == train_stats, "ERROR: Test dataset modified normalization stats!"
-    print("   ✓ Verified: Normalization statistics computed strictly from TRAIN. Val & Test never modify scaler state.")
+    print("   [OK] Verified: Normalization statistics computed strictly from TRAIN. Val & Test never modify scaler state.")
 
     # -------------------------------------------------------------------
     # 5. DATASET SANITY CHECK (LOAD 2 SAMPLES PER CLASS)
@@ -151,7 +151,7 @@ def verify_experimental_preprocessing():
                       f"Min={fgcs_spec.min():.4f}, Max={fgcs_spec.max():.4f}, Mean={fgcs_spec.mean():.4f}, Std={fgcs_spec.std():.4f}")
 
     assert nan_count == 0 and inf_count == 0, f"Detected {nan_count} NaN/Inf values during sanity check!"
-    print("   ✓ Verified: 0 NaN / Inf values detected across all samples.")
+    print("   [OK] Verified: 0 NaN / Inf values detected across all samples.")
 
     # -------------------------------------------------------------------
     # 6. MODEL FORWARD-PASS VERIFICATION (NUM_CLASSES = 4)
@@ -171,6 +171,7 @@ def verify_experimental_preprocessing():
             norm_stats=train_stats,
             batch_size=4,
             shuffle=False,
+            mock=True,
         )
         x_batch, y_batch = next(iter(loader))
 
@@ -181,7 +182,7 @@ def verify_experimental_preprocessing():
             out_logits = model(x_batch)
 
         assert out_logits.shape == (4, 4), f"Expected output shape (4, 4), got {out_logits.shape}"
-        print(f"   ✓ Model: {model_class_name:16s} | Input Batch: {tuple(x_batch.shape)} -> Output Logits: {tuple(out_logits.shape)}")
+        print(f"   [OK] Model: {model_class_name:16s} | Input Batch: {tuple(x_batch.shape)} -> Output Logits: {tuple(out_logits.shape)}")
 
     # -------------------------------------------------------------------
     # 7. CACHED FILES CHECK
@@ -190,10 +191,10 @@ def verify_experimental_preprocessing():
     cached_npz_files = list((PROCESSED_DATA_DIR / "DroneRF").glob("*.npz"))
     print(f"   - Number of cached .npz files in data/processed/DroneRF/: {len(cached_npz_files)}")
     assert len(cached_npz_files) == 0, "WARNING: Cached .npz files detected!"
-    print("   ✓ Verified: NO cached .npz files generated prematurely.")
+    print("   [OK] Verified: NO cached .npz files generated prematurely.")
 
     print("\n=================================================================")
-    print(" ✓ All 9 verification checks passed cleanly! Ready for training.")
+    print(" [OK] All 9 verification checks passed cleanly! Ready for training.")
     print("=================================================================")
 
 

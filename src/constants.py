@@ -22,3 +22,11 @@ LABEL_MAP = {
 # Inverse label map
 CLASS_TO_INDEX = {v: k for k, v in LABEL_MAP.items()}
 
+# Canonical raw class mapping from DroneRF metadata (handles spelling in raw metadata)
+RAW_CLASS_TO_INDEX = {
+    "Backround RF activities": 0,
+    "AR Drone": 1,
+    "Bepop drone": 2,
+    "Phantom drone": 3,
+}
+

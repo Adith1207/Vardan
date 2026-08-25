@@ -8,7 +8,6 @@ train/val/test split artifacts to data/processed/DroneRF/.
 """
 
 import sys
-import os
 import time
 from pathlib import Path
 import numpy as np
@@ -20,19 +19,15 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from src.config import FFT_SIZE, SAMPLING_RATE
-from src.constants import CLASS_TO_INDEX, LABEL_MAP
-from src.preprocessing.pipeline import DroneRFPreprocessor
-from src.utils.paths import DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR
+from config import FFT_SIZE, SAMPLING_RATE
+from constants import RAW_CLASS_TO_INDEX
+from preprocessing.pipeline import DroneRFPreprocessor
+from utils.paths import DATA_DIR, PROCESSED_DATA_DIR
 
 
 # Label maps
-CLASS_MAPPING_4 = {
-    "Backround RF activities": 0,
-    "Phantom drone": 1,
-    "Bepop drone": 2,
-    "AR Drone": 3,
-}
+CLASS_MAPPING_4 = RAW_CLASS_TO_INDEX
+
 
 CLASS_MAPPING_5 = {
     "Backround RF activities": 0,
@@ -89,7 +84,8 @@ def load_and_preprocess_dataset(
 
     for idx, row in df_meta.iterrows():
         rel_path = row["relative_path"]
-        abs_path = PROJECT_ROOT / rel_path
+        from data.loader import resolve_raw_path
+        abs_path = resolve_raw_path(rel_path)
 
         if not abs_path.exists():
             continue

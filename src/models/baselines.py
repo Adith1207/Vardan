@@ -19,21 +19,21 @@ class Baseline1DCNN(nn.Module):
         super().__init__()
         if not HAS_TORCH:
             return
-            
+
         self.conv1 = nn.Conv1d(in_channels, 32, kernel_size=11, stride=2, padding=5)
         self.relu1 = nn.ReLU()
         self.pool1 = nn.MaxPool1d(kernel_size=2)
-        
+
         self.conv2 = nn.Conv1d(32, 64, kernel_size=5, stride=1, padding=2)
         self.relu2 = nn.ReLU()
         self.pool2 = nn.MaxPool1d(kernel_size=2)
-        
+
         # Calculate pool size dynamically
         dummy_input = torch.zeros(1, in_channels, seq_length)
         with torch.no_grad():
             dummy_out = self.pool2(self.relu2(self.conv2(self.pool1(self.relu1(self.conv1(dummy_input))))))
             self.flat_features = dummy_out.numel()
-            
+
         self.fc1 = nn.Linear(self.flat_features, 128)
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(128, num_classes)
@@ -56,23 +56,23 @@ class DSCNN(nn.Module):
         super().__init__()
         if not HAS_TORCH:
             return
-            
+
         # Standard first conv
         self.conv1 = nn.Conv1d(in_channels, 32, kernel_size=11, stride=2, padding=5)
         self.relu1 = nn.ReLU()
-        
+
         # Depthwise Separable Conv: Depthwise + Pointwise
         self.depthwise = nn.Conv1d(32, 32, kernel_size=5, stride=1, padding=2, groups=32)
         self.pointwise = nn.Conv1d(32, 64, kernel_size=1, stride=1, padding=0)
         self.relu2 = nn.ReLU()
-        
+
         self.pool = nn.MaxPool1d(kernel_size=4)
-        
+
         dummy_input = torch.zeros(1, in_channels, seq_length)
         with torch.no_grad():
             dummy_out = self.pool(self.relu2(self.pointwise(self.depthwise(self.relu1(self.conv1(dummy_input))))))
             self.flat_features = dummy_out.numel()
-            
+
         self.fc = nn.Linear(self.flat_features, num_classes)
 
     def forward(self, x):
@@ -94,7 +94,7 @@ class MobileNetV3Small(nn.Module):
         super().__init__()
         if not HAS_TORCH:
             return
-            
+
         # Simplified MobileNetV3 small representation
         self.features = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
@@ -140,7 +140,7 @@ class FGCS2019DNN(nn.Module):
         super().__init__()
         if not HAS_TORCH:
             return
-            
+
         self.fc1 = nn.Linear(in_features, 256)
         self.relu1 = nn.ReLU()
         self.fc2 = nn.Linear(256, 128)

@@ -14,10 +14,9 @@ Tasks Executed:
 """
 
 import sys
-import time
 from pathlib import Path
+
 import numpy as np
-import pandas as pd
 
 # Ensure src/ is in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -26,15 +25,12 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-import torch
-from src.benchmark.bench import benchmark_inference_latency, profile_model_footprint
-from src.config import NUM_CLASSES
-from src.constants import LABEL_MAP
-from src.data.loader import DroneRFLazyDataset, fit_train_normalization_stats, get_dataloader
-from src.evaluation.metrics import calculate_metrics, generate_confusion_matrix
-from src.models.model_factory import get_model
-from src.models.trainer import BaselineTrainer, set_reproducible_seed
-from src.utils.paths import CHECKPOINTS_DIR, DATA_DIR
+from benchmark.bench import benchmark_inference_latency, profile_model_footprint
+from data.loader import fit_train_normalization_stats, get_dataloader
+from evaluation.metrics import calculate_metrics, generate_confusion_matrix
+from models.model_factory import get_model
+from models.trainer import BaselineTrainer, set_reproducible_seed
+from utils.paths import DATA_DIR
 
 
 def run_full_smoke_test_suite():
@@ -72,6 +68,7 @@ def run_full_smoke_test_suite():
                 norm_stats=train_stats,
                 batch_size=4,
                 shuffle=False,
+                mock=True,
             )
             x_batch, y_batch = next(iter(loader))
 
@@ -108,8 +105,8 @@ def run_full_smoke_test_suite():
     smoke_results = []
 
     for model_title, model_key, expected_in_shape in models_specs:
-        train_loader = get_dataloader(train_csv, model_name=model_key, norm_stats=train_stats, batch_size=4)
-        val_loader = get_dataloader(val_csv, model_name=model_key, norm_stats=train_stats, batch_size=4)
+        train_loader = get_dataloader(train_csv, model_name=model_key, norm_stats=train_stats, batch_size=4, mock=True)
+        val_loader = get_dataloader(val_csv, model_name=model_key, norm_stats=train_stats, batch_size=4, mock=True)
 
         if model_key == "fgcs2019dnn":
             model = get_model(model_key, in_features=2048, num_classes=4)
@@ -148,7 +145,7 @@ def run_full_smoke_test_suite():
         print(f"   - {model_title:16s} | Latency: {lat['mean_latency_ms']:.3f} ms ± {lat['std_latency_ms']:.3f} ms | Params: {prof['total_parameters']:,d}")
 
     print("\n=================================================================")
-    print(" ✓ All Tasks & Tiny Smoke Test Executed Successfully!")
+    print(" [OK] All Tasks & Tiny Smoke Test Executed Successfully!")
     print("=================================================================")
 
 

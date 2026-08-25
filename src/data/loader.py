@@ -12,29 +12,53 @@ Guarantees:
 
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
 
 try:
     import torch
-    from torch.utils.data import Dataset, DataLoader
+    from torch.utils.data import DataLoader, Dataset
     HAS_TORCH = True
 except ImportError:
     class Dataset:
         pass
     HAS_TORCH = False
 
-from src.config import FFT_SIZE, SAMPLING_RATE
-from src.preprocessing.pipeline import DroneRFPreprocessor
-from src.utils.paths import DATA_DIR, PROJECT_ROOT
+from config import SAMPLING_RATE
+from constants import RAW_CLASS_TO_INDEX as CLASS_MAPPING
+from preprocessing.pipeline import DroneRFPreprocessor
+from utils.paths import PROJECT_ROOT
 
 
-CLASS_MAPPING = {
-    "Backround RF activities": 0,
-    "AR Drone": 1,
-    "Bepop drone": 2,
-    "Phantom drone": 3,
-}
+def resolve_raw_path(relative_path: Union[str, Path]) -> Path:
+    """Resolve raw CSV file path on disk, handling different unzipping layouts."""
+    path = PROJECT_ROOT / relative_path
+    if path.exists():
+        return path
+
+    # Try replacing 'unzipped_data' with 'DroneRF' and lowercase matching
+    parts = list(Path(relative_path).parts)
+    if 'unzipped_data' in parts:
+        idx = parts.index('unzipped_data')
+        parts[idx] = 'DroneRF'
+        if len(parts) > idx + 1:
+            parts[idx+1] = parts[idx+1].replace('Drone', 'drone')
+
+        # Try nested directory layout E.g. RF Data_10100_H/RF Data_10100_H/10100H_0.csv
+        if len(parts) > idx + 2:
+            folder_name = parts[-2]
+            nested_parts = parts[:-1] + [folder_name] + [parts[-1]]
+            nested_path = PROJECT_ROOT / Path(*nested_parts)
+            if nested_path.exists():
+                return nested_path
+
+        alt_path = PROJECT_ROOT / Path(*parts)
+        if alt_path.exists():
+            return alt_path
+
+    return path
+
 
 
 def fit_train_normalization_stats(
@@ -51,20 +75,22 @@ def fit_train_normalization_stats(
     sample_files = df_train["relative_path"].head(max_files)
 
     signals = []
+    limit = segment_length * 15 + 1000
     for rel_p in sample_files:
-        abs_p = PROJECT_ROOT / rel_p
+        abs_p = resolve_raw_path(rel_p)
         if not abs_p.exists():
             continue
         try:
             with open(abs_p, "r") as f:
-                lines = [f.readline() for _ in range(5)]
-            raw_str = ",".join([l.strip() for l in lines if l.strip()])
+                line = f.readline(limit)
+            raw_str = line.rsplit(",", 1)[0]
             vals = np.fromstring(raw_str, sep=",", dtype=np.float32)
             vals = vals[~np.isnan(vals)]
             if len(vals) >= segment_length:
                 signals.append(vals[:segment_length])
         except Exception:
             continue
+
 
     if not signals:
         return {"mean": 0.0, "std": 1.0, "max": 1.0, "min": -1.0}
@@ -95,11 +121,13 @@ class DroneRFLazyDataset(Dataset):
         norm_stats: Optional[Dict[str, float]] = None,
         segment_length: int = 2048,
         samples_per_file: int = 2,
+        mock: bool = False,
     ):
         self.split_csv = Path(split_csv)
         self.model_name = model_name.lower()
         self.segment_length = segment_length
         self.samples_per_file = samples_per_file
+        self.mock = mock
 
         if not self.split_csv.exists():
             raise FileNotFoundError(f"Split CSV not found at {self.split_csv}")
@@ -128,20 +156,36 @@ class DroneRFLazyDataset(Dataset):
         return len(self.items)
 
     def _read_segment(self, file_path: Path, offset: int) -> np.ndarray:
-        if not file_path.exists():
-            return np.zeros(self.segment_length, dtype=np.float32)
+        if self.mock:
+            # Deterministic mock signal based on filename hash + offset
+            state = np.random.RandomState(hash(file_path.name) % (2**32) + offset)
+            return state.randn(self.segment_length).astype(np.float32)
+
+        resolved_path = resolve_raw_path(file_path)
+        if not resolved_path.exists():
+            raise FileNotFoundError(f"Raw DroneRF CSV file not found: {resolved_path}")
 
         try:
-            with open(file_path, "r") as f:
-                lines = [f.readline() for _ in range(offset + 3)]
-            target_line = lines[-1] if lines else ""
-            vals = np.fromstring(target_line, sep=",", dtype=np.float32)
+            # Optimize reading by reading only what we need.
+            # Limit character length to (offset + 1) * segment_length * 15 + 1000
+            limit = (offset + 1) * self.segment_length * 15 + 1000
+            with open(resolved_path, "r") as f:
+                line = f.readline(limit)
+
+            # Parse numbers up to the last complete one
+            vals = np.fromstring(line.rsplit(",", 1)[0], sep=",", dtype=np.float32)
             vals = vals[~np.isnan(vals)]
-            if len(vals) < self.segment_length:
-                vals = np.pad(vals, (0, self.segment_length - len(vals)))
-            return vals[: self.segment_length]
-        except Exception:
-            return np.zeros(self.segment_length, dtype=np.float32)
+
+            start_idx = offset * self.segment_length
+            end_idx = start_idx + self.segment_length
+
+            seg = vals[start_idx:end_idx]
+            if len(seg) < self.segment_length:
+                seg = np.pad(seg, (0, self.segment_length - len(seg)))
+            return seg
+        except Exception as e:
+            raise RuntimeError(f"Error reading segment from {resolved_path}: {e}")
+
 
     def __getitem__(self, idx: int) -> Tuple[Union[np.ndarray, "torch.Tensor"], int]:
         file_path, offset, label = self.items[idx]
@@ -189,12 +233,14 @@ def get_dataloader(
     batch_size: int = 4,
     shuffle: bool = False,
     num_workers: int = 0,
+    mock: bool = False,
 ) -> "DataLoader":
     """Instantiate PyTorch DataLoader for a given dataset split."""
     dataset = DroneRFLazyDataset(
         split_csv=split_csv,
         model_name=model_name,
         norm_stats=norm_stats,
+        mock=mock,
     )
     if HAS_TORCH:
         return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
