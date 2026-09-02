@@ -16,8 +16,15 @@ across diverse layout variations:
 """
 
 import os
+import sys
 import tempfile
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 import numpy as np
 import pytest
@@ -145,3 +152,26 @@ def test_lazy_dataset_reads_from_kaggle_layout():
         assert x_tensor.shape == (2, 2048)
         assert label == 1  # AR Drone label index
         assert torch.isfinite(x_tensor).all()
+
+
+def test_representative_files_exist_in_metadata():
+    """Verify that all 13 representative files exist in dronerf_metadata.csv with valid schema."""
+    import pandas as pd
+    from scripts.verify_preprocessing import REPRESENTATIVE_FILES
+    from utils.paths import DATA_DIR
+
+    meta_csv = DATA_DIR / "metadata" / "dronerf_metadata.csv"
+    assert meta_csv.exists(), f"Missing metadata manifest at {meta_csv}"
+
+    df_meta = pd.read_csv(meta_csv)
+    meta_rel_paths = set(df_meta["relative_path"])
+    meta_filenames = set(df_meta["relative_path"].apply(lambda p: Path(p).name))
+
+    assert len(REPRESENTATIVE_FILES) == 13
+
+    for rep in REPRESENTATIVE_FILES:
+        rel_path = rep["rel_path"]
+        fname = rep["filename"]
+        assert fname in meta_filenames, f"Representative filename '{fname}' not found in metadata!"
+        assert rel_path in meta_rel_paths, f"Representative rel_path '{rel_path}' not found in metadata!"
+

@@ -61,10 +61,10 @@ REPRESENTATIVE_FILES = [
     {"drone_class": "Bepop drone", "exp": "10000", "band": "L", "filename": "10000L_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_L/10000L_0.csv"},
     {"drone_class": "Bepop drone", "exp": "10010", "band": "H", "filename": "10010H_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_0.csv"},
     # Background RF
-    {"drone_class": "Backround RF activities", "exp": "00000", "band": "H1", "filename": "00000H1_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H1_0.csv"},
-    {"drone_class": "Backround RF activities", "exp": "00000", "band": "L1", "filename": "00000L1_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L1/00000L1_0.csv"},
-    {"drone_class": "Backround RF activities", "exp": "00000", "band": "H2", "filename": "00000H2_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H2/00000H2_0.csv"},
-    {"drone_class": "Backround RF activities", "exp": "00000", "band": "L2", "filename": "00000L2_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L2_0.csv"},
+    {"drone_class": "Backround RF activities", "exp": "00000", "band": "H1", "filename": "00000H_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_0.csv"},
+    {"drone_class": "Backround RF activities", "exp": "00000", "band": "L1", "filename": "00000L_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L1/00000L_0.csv"},
+    {"drone_class": "Backround RF activities", "exp": "00000", "band": "H2", "filename": "00000H_21.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/FR Data_00000_H2/00000H_21.csv"},
+    {"drone_class": "Backround RF activities", "exp": "00000", "band": "L2", "filename": "00000L_21.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_21.csv"},
     # Phantom Drone
     {"drone_class": "Phantom drone", "exp": "11000", "band": "H", "filename": "11000H_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_H/11000H_0.csv"},
     {"drone_class": "Phantom drone", "exp": "11000", "band": "L1", "filename": "11000L_0.csv", "rel_path": "data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L1/11000L_0.csv"},
