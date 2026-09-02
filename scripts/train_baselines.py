@@ -439,7 +439,7 @@ def execute_baseline_suite(
             "lr": override_lr or 1e-3,
             "optimizer": "Adam",
             "weight_decay": 0.0,
-            "in_shape": (2, 2048),
+            "in_shape": (8, 256),
         },
         {
             "title": "DSCNN",
@@ -449,7 +449,7 @@ def execute_baseline_suite(
             "lr": override_lr or 1e-3,
             "optimizer": "Adam",
             "weight_decay": 0.0,
-            "in_shape": (2, 2048),
+            "in_shape": (1, 2048),
         },
         {
             "title": "MobileNetV3Small",
@@ -469,7 +469,7 @@ def execute_baseline_suite(
             "lr": override_lr or 1e-3,
             "optimizer": "AdamW",
             "weight_decay": 1e-4,
-            "in_shape": (2, 2048),
+            "in_shape": (1, 2048),
         },
     ]
 
