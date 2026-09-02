@@ -3,13 +3,15 @@ preprocess_dataset.py
 ---------------------
 
 Dataset preprocessing script for the DroneRF dataset.
-Processes raw RF CSV signals using DroneRFPreprocessor and exports
-train/val/test split artifacts to data/processed/DroneRF/.
+Consumes pre-computed recording-level split manifests (train.csv, val.csv, test.csv)
+and extracts preprocessed representations to data/processed/DroneRF/ without data leakage.
 """
 
+import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 import numpy as np
 import pandas as pd
 
@@ -25,88 +27,35 @@ from preprocessing.pipeline import DroneRFPreprocessor
 from utils.paths import DATA_DIR, PROCESSED_DATA_DIR
 
 
-# Label maps
-CLASS_MAPPING_4 = RAW_CLASS_TO_INDEX
-
-
-CLASS_MAPPING_5 = {
-    "Backround RF activities": 0,
-    "Phantom drone": 1,  # Can be 1 or 2 depending on receiver/mode
-    "Bepop drone": 3,
-    "AR Drone": 4,
-}
-
-
-def load_and_preprocess_dataset(
+def preprocess_split(
+    split_csv_path: Path,
+    preprocessor: DroneRFPreprocessor,
     max_segments_per_file: int = 50,
     segment_length: int = 2048,
-    train_ratio: float = 0.70,
-    val_ratio: float = 0.15,
-    test_ratio: float = 0.15,
-    random_seed: int = 42,
-):
-    """
-    Load raw DroneRF CSV files, extract 2048-sample segments, preprocess them,
-    and save stratified train/val/test datasets.
-    """
-    start_time = time.time()
-    np.random.seed(random_seed)
+    raw_data_dir: Optional[Path] = None,
+) -> dict:
+    """Extract and preprocess segments for a single split dataframe."""
+    from data.loader import resolve_raw_path
 
-    print("=========================================================")
-    print("      Vardan Counter-UAS Dataset Preprocessing          ")
-    print("=========================================================")
+    df_split = pd.read_csv(split_csv_path)
+    all_raw = []
+    all_fgcs = []
+    all_mc = []
+    all_labels = []
 
-    metadata_path = DATA_DIR / "metadata" / "dronerf_metadata.csv"
-    if not metadata_path.exists():
-        print(f"Error: Metadata file not found at {metadata_path}")
-        return
+    total_files = len(df_split)
 
-    df_meta = pd.read_csv(metadata_path)
-    print(f"Loaded metadata for {len(df_meta)} CSV files.")
-
-    preprocessor = DroneRFPreprocessor(
-        fft_size=FFT_SIZE,
-        remove_dc=True,
-        normalization="max",
-        channel_count=8,
-        channel_overlap=0.50,
-        fs=SAMPLING_RATE,
-    )
-
-    all_raw_signals = []
-    all_fgcs_spectra = []
-    all_multichannel_spectra = []
-    all_labels_4 = []
-    all_labels_5 = []
-
-    file_count = 0
-    total_files = len(df_meta)
-
-    for idx, row in df_meta.iterrows():
+    for idx, row in df_split.iterrows():
         rel_path = row["relative_path"]
-        from data.loader import resolve_raw_path
-        abs_path = resolve_raw_path(rel_path)
+        abs_path = resolve_raw_path(rel_path, raw_data_dir=raw_data_dir)
 
         if not abs_path.exists():
             continue
 
         drone_class = row["drone_class"]
-        receiver = str(row["receiver"]).upper()
-
-        # Determine 4-class label
-        label_4 = CLASS_MAPPING_4.get(drone_class, 0)
-
-        # Determine 5-class label
-        if drone_class == "Phantom drone":
-            if "2" in receiver or "VIDEO" in receiver:
-                label_5 = 2  # phantom_4_video
-            else:
-                label_5 = 1  # phantom_4_active
-        else:
-            label_5 = CLASS_MAPPING_5.get(drone_class, 0)
+        label = RAW_CLASS_TO_INDEX.get(drone_class, 0)
 
         try:
-            # Read first chunk of samples from CSV file
             chunk_df = pd.read_csv(abs_path, header=None, nrows=max_segments_per_file)
             flat_vals = chunk_df.to_numpy().reshape(-1)
             flat_vals = pd.to_numeric(flat_vals, errors="coerce")
@@ -119,85 +68,117 @@ def load_and_preprocess_dataset(
             for s_idx in range(num_segments):
                 seg = flat_vals[s_idx * segment_length : (s_idx + 1) * segment_length]
 
-                # Preprocess representations
                 fgcs_spec = preprocessor.process_fgcs(seg)
                 mc_spec = preprocessor.process_multichannel(seg)
 
-                # Normalize 1D waveform
                 seg_norm = seg - np.mean(seg)
                 max_abs = np.max(np.abs(seg_norm))
                 if max_abs > 1e-8:
                     seg_norm /= max_abs
 
-                all_raw_signals.append(seg_norm)
-                all_fgcs_spectra.append(fgcs_spec)
-                all_multichannel_spectra.append(mc_spec)
-                all_labels_4.append(label_4)
-                all_labels_5.append(label_5)
-
-            file_count += 1
-            if file_count % 50 == 0 or file_count == total_files:
-                print(f"Processed {file_count}/{total_files} files ({len(all_raw_signals)} total segments extracted)...")
+                all_raw.append(seg_norm)
+                all_fgcs.append(fgcs_spec)
+                all_mc.append(mc_spec)
+                all_labels.append(label)
 
         except Exception as e:
             print(f"Skipping {abs_path.name}: {e}")
             continue
 
-    if not all_raw_signals:
-        print("Error: No segments extracted.")
-        return
+    if not all_raw:
+        return {
+            "x_raw": np.empty((0, segment_length), dtype=np.float32),
+            "x_fgcs": np.empty((0, segment_length), dtype=np.float32),
+            "x_multichannel": np.empty((0, 8, 256), dtype=np.float32),
+            "y_4class": np.empty((0,), dtype=np.int64),
+        }
 
-    # Convert lists to NumPy arrays
-    X_raw = np.array(all_raw_signals, dtype=np.float32)
-    X_fgcs = np.array(all_fgcs_spectra, dtype=np.float32)
-    X_mc = np.array(all_multichannel_spectra, dtype=np.float32)
-    y_4 = np.array(all_labels_4, dtype=np.int64)
-    y_5 = np.array(all_labels_5, dtype=np.int64)
-
-    total_samples = len(y_4)
-    print(f"\nSuccessfully extracted {total_samples} dataset segments!")
-    print(f" - Raw waveforms shape:        {X_raw.shape}")
-    print(f" - FGCS power spectra shape:   {X_fgcs.shape}")
-    print(f" - Multi-channel spectra shape: {X_mc.shape}")
-
-    # Stratified Dataset Splitting
-    indices = np.arange(total_samples)
-    np.random.shuffle(indices)
-
-    n_train = int(total_samples * train_ratio)
-    n_val = int(total_samples * val_ratio)
-
-    train_idx = indices[:n_train]
-    val_idx = indices[n_train : n_train + n_val]
-    test_idx = indices[n_train + n_val :]
-
-    out_dir = PROCESSED_DATA_DIR / "DroneRF"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    splits = {
-        "train": train_idx,
-        "val": val_idx,
-        "test": test_idx,
+    return {
+        "x_raw": np.array(all_raw, dtype=np.float32),
+        "x_fgcs": np.array(all_fgcs, dtype=np.float32),
+        "x_multichannel": np.array(all_mc, dtype=np.float32),
+        "y_4class": np.array(all_labels, dtype=np.int64),
     }
 
-    print("\nSaving dataset splits to:", out_dir)
-    for split_name, split_indices in splits.items():
-        save_path = out_dir / f"{split_name}.npz"
-        np.savez_compressed(
-            save_path,
-            x_raw=X_raw[split_indices],
-            x_fgcs=X_fgcs[split_indices],
-            x_multichannel=X_mc[split_indices],
-            y_4class=y_4[split_indices],
-            y_5class=y_5[split_indices],
+
+def load_and_preprocess_dataset(
+    splits_dir: Optional[Path] = None,
+    output_dir: Optional[Path] = None,
+    max_segments_per_file: int = 50,
+    segment_length: int = 2048,
+    raw_data_dir: Optional[Path] = None,
+):
+    """
+    Preprocess DroneRF dataset split-by-split using pre-computed recording-level split CSVs.
+    Guarantees strict isolation between Train, Val, and Test.
+    """
+    start_time = time.time()
+
+    print("=========================================================")
+    print("      Vardan Counter-UAS Dataset Preprocessing          ")
+    print("=========================================================")
+
+    splits_path = Path(splits_dir) if splits_dir else DATA_DIR / "splits"
+    out_path = Path(output_dir) if output_dir else PROCESSED_DATA_DIR / "DroneRF"
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    preprocessor = DroneRFPreprocessor(
+        fft_size=FFT_SIZE,
+        remove_dc=True,
+        normalization="max",
+        channel_count=8,
+        channel_overlap=0.50,
+        fs=SAMPLING_RATE,
+    )
+
+    for split_name in ["train", "val", "test"]:
+        csv_file = splits_path / f"{split_name}.csv"
+        if not csv_file.exists():
+            print(f"Split CSV not found: {csv_file}. Please run create_splits.py first.")
+            return
+
+        print(f"\nProcessing {split_name} split from {csv_file.name}...")
+        split_data = preprocess_split(
+            split_csv_path=csv_file,
+            preprocessor=preprocessor,
+            max_segments_per_file=max_segments_per_file,
+            segment_length=segment_length,
+            raw_data_dir=raw_data_dir,
         )
-        print(f" ✓ {split_name}.npz ({len(split_indices)} samples) saved to {save_path.name}")
+
+        n_samples = len(split_data["y_4class"])
+        if n_samples > 0:
+            save_path = out_path / f"{split_name}.npz"
+            np.savez_compressed(
+                save_path,
+                x_raw=split_data["x_raw"],
+                x_fgcs=split_data["x_fgcs"],
+                x_multichannel=split_data["x_multichannel"],
+                y_4class=split_data["y_4class"],
+            )
+            print(f" [OK] {split_name}.npz ({n_samples} samples) saved to {save_path.name}")
+        else:
+            print(f" [Notice] 0 segments processed for {split_name} (raw data not present locally; run on Kaggle).")
 
     elapsed = time.time() - start_time
     print(f"\n=========================================================")
-    print(f" Preprocessing completed successfully in {elapsed:.2f}s!")
+    print(f" Preprocessing completed in {elapsed:.2f}s!")
     print(f"=========================================================")
 
 
 if __name__ == "__main__":
-    load_and_preprocess_dataset()
+    parser = argparse.ArgumentParser(description="Preprocess DroneRF dataset based on recording-level split manifests.")
+    parser.add_argument("--splits_dir", type=str, default=None, help="Path to splits directory (containing train.csv, val.csv, test.csv)")
+    parser.add_argument("--output_dir", type=str, default=None, help="Path to output directory for .npz files")
+    parser.add_argument("--raw_data_dir", type=str, default=None, help="Path to raw DroneRF dataset")
+    parser.add_argument("--max_segments_per_file", type=int, default=50, help="Max segments to extract per CSV file")
+    parser.add_argument("--segment_length", type=int, default=2048, help="Sample count per segment")
+    args = parser.parse_args()
+
+    load_and_preprocess_dataset(
+        splits_dir=Path(args.splits_dir) if args.splits_dir else None,
+        output_dir=Path(args.output_dir) if args.output_dir else None,
+        max_segments_per_file=args.max_segments_per_file,
+        segment_length=args.segment_length,
+        raw_data_dir=Path(args.raw_data_dir) if args.raw_data_dir else None,
+    )

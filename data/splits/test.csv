@@ -1,68 +1,74 @@
-drone_class,experiment_id,receiver,segment_id,relative_path,file_size_bytes,file_size_mb,is_valid_path
-AR Drone,10100,H,12,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_12.csv,94311262,89.94,True
-AR Drone,10100,H,15,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_15.csv,94256881,89.89,True
-AR Drone,10100,H,16,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_16.csv,94301058,89.93,True
-AR Drone,10100,H,18,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_18.csv,94313536,89.94,True
-AR Drone,10100,H,19,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_19.csv,94290738,89.92,True
-AR Drone,10100,H,9,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_H/10100H_9.csv,94313550,89.94,True
-AR Drone,10100,L,3,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_3.csv,97117841,92.62,True
-AR Drone,10100,L,8,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_8.csv,96229377,91.77,True
-AR Drone,10100,L,9,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_9.csv,95607664,91.18,True
-AR Drone,10101,H,13,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10101_H/10101H_13.csv,94371315,90.0,True
-AR Drone,10101,H,9,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10101_H/10101H_9.csv,94235679,89.87,True
-AR Drone,10101,L,12,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10101_L/10101L_12.csv,95598732,91.17,True
-AR Drone,10101,L,3,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10101_L/10101L_3.csv,95918644,91.48,True
-AR Drone,10110,H,0,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_0.csv,94304316,89.94,True
-AR Drone,10110,H,10,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_10.csv,94338751,89.97,True
-AR Drone,10110,H,14,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_14.csv,94322570,89.95,True
-AR Drone,10110,H,16,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_16.csv,94271435,89.9,True
-AR Drone,10110,H,17,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_17.csv,94271750,89.9,True
-AR Drone,10110,H,20,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_H/10110H_20.csv,94278199,89.91,True
-AR Drone,10110,L,4,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10110_L/10110L_4.csv,95517055,91.09,True
-AR Drone,10111,H,17,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10111_H/10111H_17.csv,94280994,89.91,True
-AR Drone,10111,H,5,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10111_H/10111H_5.csv,94234470,89.87,True
-AR Drone,10111,L,0,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10111_L/10111L_0.csv,97107740,92.61,True
-AR Drone,10111,L,14,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10111_L/10111L_14.csv,96366316,91.9,True
-Backround RF activities,0,H2,21,data/raw/DroneRF/unzipped_data/Backround RF activities/FR Data_00000_H2/00000H_21.csv,94244414,89.88,True
-Backround RF activities,0,H2,28,data/raw/DroneRF/unzipped_data/Backround RF activities/FR Data_00000_H2/00000H_28.csv,94352550,89.98,True
-Backround RF activities,0,H2,34,data/raw/DroneRF/unzipped_data/Backround RF activities/FR Data_00000_H2/00000H_34.csv,94311969,89.94,True
-Backround RF activities,0,H1,12,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_12.csv,94278344,89.91,True
-Backround RF activities,0,H1,13,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_13.csv,94353126,89.98,True
-Backround RF activities,0,H1,20,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_20.csv,94295694,89.93,True
-Backround RF activities,0,H1,6,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_6.csv,94353896,89.98,True
-Backround RF activities,0,H1,7,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_7.csv,94362556,89.99,True
-Backround RF activities,0,H1,9,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_H1/00000H_9.csv,94416645,90.04,True
-Backround RF activities,0,L1,19,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L1/00000L_19.csv,94362060,89.99,True
-Backround RF activities,0,L1,6,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L1/00000L_6.csv,94423487,90.05,True
-Backround RF activities,0,L2,36,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_36.csv,94310408,89.94,True
-Bepop drone,10000,H,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_2.csv,94324376,89.95,True
-Bepop drone,10000,H,4,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_4.csv,94349975,89.98,True
-Bepop drone,10000,H,9,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_9.csv,94365004,89.99,True
-Bepop drone,10000,L,12,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_L/10000L_12.csv,97661990,93.14,True
-Bepop drone,10001,H,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_H/10001H_2.csv,94238482,89.87,True
-Bepop drone,10001,H,9,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_H/10001H_9.csv,94401110,90.03,True
-Bepop drone,10001,L,13,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_L/10001L_13.csv,96945261,92.45,True
-Bepop drone,10001,L,17,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_L/10001L_17.csv,96918379,92.43,True
-Bepop drone,10001,L,19,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_L/10001L_19.csv,96914555,92.42,True
-Bepop drone,10001,L,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_L/10001L_2.csv,96872205,92.38,True
-Bepop drone,10001,L,7,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10001_L/10001L_7.csv,97997445,93.46,True
-Bepop drone,10010,H,12,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_12.csv,94320333,89.95,True
-Bepop drone,10010,H,18,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_18.csv,94372650,90.0,True
-Bepop drone,10010,H,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_2.csv,94327858,89.96,True
-Bepop drone,10010,H,20,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_20.csv,94297124,89.93,True
-Bepop drone,10010,H,4,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_4.csv,94358487,89.99,True
-Bepop drone,10010,H,7,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_H/10010H_7.csv,94258832,89.89,True
-Bepop drone,10010,L,16,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_L/10010L_16.csv,96210697,91.75,True
-Bepop drone,10010,L,19,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_L/10010L_19.csv,96710174,92.23,True
-Bepop drone,10010,L,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10010_L/10010L_2.csv,97036981,92.54,True
-Bepop drone,10011,H,0,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10011_H/10011H_0.csv,94279354,89.91,True
-Bepop drone,10011,H,12,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10011_H/10011H_12.csv,94314474,89.95,True
-Bepop drone,10011,H,6,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10011_H/10011H_6.csv,94321655,89.95,True
-Bepop drone,10011,H,9,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10011_H/10011H_9.csv,94332295,89.96,True
-Bepop drone,10011,L,14,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10011_L/10011L_14.csv,96794753,92.31,True
-Phantom drone,11000,H,17,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_H/11000H_17.csv,95880007,91.44,True
-Phantom drone,11000,H,19,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_H/11000H_19.csv,96248214,91.79,True
-Phantom drone,11000,H,3,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_H/11000H_3.csv,96468571,92.0,True
-Phantom drone,11000,L1,0,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L1/11000L_0.csv,99356138,94.75,True
-Phantom drone,11000,L1,5,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L1/11000L_5.csv,98853532,94.27,True
-Phantom drone,11000,L2,12,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_12.csv,98952648,94.37,True
+drone_class,experiment_id,receiver,segment_id,relative_path,file_size_bytes,file_size_mb,is_valid_path,recording_id
+AR Drone,10100,L,0,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_0.csv,95857883,91.42,True,AR Drone_10100_L
+AR Drone,10100,L,1,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_1.csv,96301472,91.84,True,AR Drone_10100_L
+AR Drone,10100,L,10,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_10.csv,95191483,90.78,True,AR Drone_10100_L
+AR Drone,10100,L,11,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_11.csv,95486279,91.06,True,AR Drone_10100_L
+AR Drone,10100,L,12,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_12.csv,96192534,91.74,True,AR Drone_10100_L
+AR Drone,10100,L,13,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_13.csv,95451822,91.03,True,AR Drone_10100_L
+AR Drone,10100,L,14,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_14.csv,95671870,91.24,True,AR Drone_10100_L
+AR Drone,10100,L,15,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_15.csv,95207267,90.8,True,AR Drone_10100_L
+AR Drone,10100,L,16,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_16.csv,95398386,90.98,True,AR Drone_10100_L
+AR Drone,10100,L,17,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_17.csv,96341673,91.88,True,AR Drone_10100_L
+AR Drone,10100,L,18,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_18.csv,95572393,91.14,True,AR Drone_10100_L
+AR Drone,10100,L,19,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_19.csv,95475767,91.05,True,AR Drone_10100_L
+AR Drone,10100,L,2,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_2.csv,99373571,94.77,True,AR Drone_10100_L
+AR Drone,10100,L,20,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_20.csv,95645122,91.21,True,AR Drone_10100_L
+AR Drone,10100,L,3,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_3.csv,97117841,92.62,True,AR Drone_10100_L
+AR Drone,10100,L,4,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_4.csv,102590249,97.84,True,AR Drone_10100_L
+AR Drone,10100,L,5,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_5.csv,103253947,98.47,True,AR Drone_10100_L
+AR Drone,10100,L,6,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_6.csv,95430189,91.01,True,AR Drone_10100_L
+AR Drone,10100,L,7,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_7.csv,95111656,90.71,True,AR Drone_10100_L
+AR Drone,10100,L,8,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_8.csv,96229377,91.77,True,AR Drone_10100_L
+AR Drone,10100,L,9,data/raw/DroneRF/unzipped_data/AR Drone/RF Data_10100_L/10100L_9.csv,95607664,91.18,True,AR Drone_10100_L
+Backround RF activities,0,L2,21,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_21.csv,94403362,90.03,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,22,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_22.csv,94617039,90.23,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,23,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_23.csv,94697815,90.31,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,24,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_24.csv,94451089,90.08,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,25,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_25.csv,94323483,89.95,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,26,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_26.csv,94291053,89.92,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,27,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_27.csv,94381825,90.01,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,28,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_28.csv,94379111,90.01,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,29,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_29.csv,94391143,90.02,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,30,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_30.csv,94334792,89.96,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,31,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_31.csv,94532328,90.15,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,32,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_32.csv,94407932,90.03,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,33,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_33.csv,94406124,90.03,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,34,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_34.csv,94351716,89.98,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,35,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_35.csv,94351770,89.98,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,36,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_36.csv,94310408,89.94,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,37,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_37.csv,94370922,90.0,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,38,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_38.csv,94469962,90.09,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,39,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_39.csv,94357861,89.99,True,Backround RF activities_0_L2
+Backround RF activities,0,L2,40,data/raw/DroneRF/unzipped_data/Backround RF activities/RF Data_00000_L2/00000L_40.csv,94332999,89.96,True,Backround RF activities_0_L2
+Bepop drone,10000,H,0,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_0.csv,94303625,89.93,True,Bepop drone_10000_H
+Bepop drone,10000,H,1,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_1.csv,94355767,89.98,True,Bepop drone_10000_H
+Bepop drone,10000,H,10,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_10.csv,94368900,90.0,True,Bepop drone_10000_H
+Bepop drone,10000,H,11,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_11.csv,94357265,89.99,True,Bepop drone_10000_H
+Bepop drone,10000,H,12,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_12.csv,94267063,89.9,True,Bepop drone_10000_H
+Bepop drone,10000,H,13,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_13.csv,94258460,89.89,True,Bepop drone_10000_H
+Bepop drone,10000,H,14,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_14.csv,94371631,90.0,True,Bepop drone_10000_H
+Bepop drone,10000,H,15,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_15.csv,94474865,90.1,True,Bepop drone_10000_H
+Bepop drone,10000,H,16,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_16.csv,94445350,90.07,True,Bepop drone_10000_H
+Bepop drone,10000,H,17,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_17.csv,95375225,90.96,True,Bepop drone_10000_H
+Bepop drone,10000,H,18,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_18.csv,95722579,91.29,True,Bepop drone_10000_H
+Bepop drone,10000,H,19,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_19.csv,95556468,91.13,True,Bepop drone_10000_H
+Bepop drone,10000,H,2,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_2.csv,94324376,89.95,True,Bepop drone_10000_H
+Bepop drone,10000,H,20,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_20.csv,94302932,89.93,True,Bepop drone_10000_H
+Bepop drone,10000,H,3,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_3.csv,94256144,89.89,True,Bepop drone_10000_H
+Bepop drone,10000,H,4,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_4.csv,94349975,89.98,True,Bepop drone_10000_H
+Bepop drone,10000,H,5,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_5.csv,94390773,90.02,True,Bepop drone_10000_H
+Bepop drone,10000,H,6,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_6.csv,94317180,89.95,True,Bepop drone_10000_H
+Bepop drone,10000,H,7,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_7.csv,94279469,89.91,True,Bepop drone_10000_H
+Bepop drone,10000,H,8,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_8.csv,94245441,89.88,True,Bepop drone_10000_H
+Bepop drone,10000,H,9,data/raw/DroneRF/unzipped_data/Bepop drone/RF Data_10000_H/10000H_9.csv,94365004,89.99,True,Bepop drone_10000_H
+Phantom drone,11000,L2,10,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_10.csv,99453106,94.85,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,11,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_11.csv,99553641,94.94,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,12,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_12.csv,98952648,94.37,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,13,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_13.csv,99921968,95.29,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,14,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_14.csv,99145856,94.55,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,15,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_15.csv,98672442,94.1,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,16,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_16.csv,98711962,94.14,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,17,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_17.csv,98226388,93.68,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,18,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_18.csv,99376933,94.77,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,19,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_19.csv,99265061,94.67,True,Phantom drone_11000_L2
+Phantom drone,11000,L2,20,data/raw/DroneRF/unzipped_data/Phantom drone/RF Data_11000_L2/11000L_20.csv,99222916,94.63,True,Phantom drone_11000_L2
