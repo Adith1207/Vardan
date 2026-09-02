@@ -99,6 +99,52 @@ def compress_dynamic_range(
         raise ValueError(f"Unknown compression method '{method}'. Options: log, mu_law, power_law, none.")
 
 
+class CompressiveSensingMatrix:
+    """Deterministic Gaussian random sensing matrix for compressive sensing (Mo et al. 2022).
+    
+    Generates a fixed, deterministic projection matrix Phi of shape (n_compressed, n_input)
+    using seed=42 to simulate hardware compressive sampling.
+    """
+
+    def __init__(
+        self,
+        n_input: int = 2048,
+        n_compressed: int = 1024,
+        seed: int = 42,
+    ):
+        self.n_input = n_input
+        self.n_compressed = n_compressed
+        self.seed = seed
+
+        # Deterministic generation of sensing matrix Phi
+        rng = np.random.RandomState(seed)
+        raw_phi = rng.randn(n_compressed, n_input).astype(np.float32)
+        # Normalize rows to unit L2 norm to preserve isometry
+        row_norms = np.linalg.norm(raw_phi, axis=1, keepdims=True)
+        self.phi = (raw_phi / (row_norms + 1e-12)).astype(np.float32)
+
+    def transform(self, signal: np.ndarray) -> np.ndarray:
+        """Apply compressive sensing projection y = Phi @ x.
+
+        Args:
+            signal: 1D array of shape (n_input,) or 2D array of shape (batch, n_input).
+
+        Returns:
+            Compressed array of shape (n_compressed,) or (batch, n_compressed).
+        """
+        signal = np.asarray(signal, dtype=np.float32)
+        if signal.ndim == 1:
+            if signal.shape[0] != self.n_input:
+                raise ValueError(f"Expected signal length {self.n_input}, got {signal.shape[0]}")
+            return (self.phi @ signal).astype(np.float32)
+        elif signal.ndim == 2:
+            if signal.shape[1] != self.n_input:
+                raise ValueError(f"Expected signal length {self.n_input}, got {signal.shape[1]}")
+            return (signal @ self.phi.T).astype(np.float32)
+        else:
+            raise ValueError(f"Expected 1D or 2D signal array, got ndim={signal.ndim}")
+
+
 class DynamicRangeCompressor:
     """Stateful dynamic range compression processor."""
 
@@ -130,4 +176,5 @@ class DynamicRangeCompressor:
         )
 
 
-CompressedSensingProcessor = DynamicRangeCompressor
+CompressedSensingProcessor = CompressiveSensingMatrix
+

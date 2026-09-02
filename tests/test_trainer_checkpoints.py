@@ -21,12 +21,13 @@ from models.trainer import BaselineTrainer
 def synthetic_data():
     """Create a tiny synthetic dataset of (x, y) pairs."""
     torch.manual_seed(42)
-    x = torch.randn(20, 2, 2048)
+    x = torch.randn(20, 1, 2048)
     y = torch.randint(0, 4, (20,))
     dataset = TensorDataset(x, y)
     train_loader = DataLoader(dataset, batch_size=4, shuffle=False)
     val_loader = DataLoader(dataset, batch_size=4, shuffle=False)
     return train_loader, val_loader
+
 
 
 def test_checkpoint_save_and_load(synthetic_data):

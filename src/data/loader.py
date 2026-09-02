@@ -334,18 +334,35 @@ class DroneRFLazyDataset(Dataset):
         raw_sig = self._read_segment(file_path, offset)
 
         # Model-specific lazy preprocessing representations
-        if self.model_name == "fgcs2019dnn":
+        name = self.model_name.lower().strip()
+
+        if name in ["fgcs2019dnn", "fgcs_dnn", "baseline_dnn", "allahham2019"]:
             # FGCS DNN: DC-removed 2048-pt FFT Power Spectrum (Max-magnitude normalized) -> (2048,)
             spectrum = self.preprocessor.process_fgcs(raw_sig)
             out_tensor = spectrum.astype(np.float32)
 
-        elif self.model_name in ["baseline1dcnn", "mc1dcnn", "1dcnn", "dscnn", "vardhan", "vardhanrfnet"]:
-            # 2-channel I/Q time-domain waveform representation -> (2, 2048)
-            i_ch = (raw_sig - self.norm_stats["mean"]) / self.norm_stats["std"]
-            q_ch = np.roll(i_ch, 1)
-            out_tensor = np.stack([i_ch, q_ch], axis=0).astype(np.float32)
+        elif name in ["baseline1dcnn", "mc1dcnn", "1dcnn", "baseline_mc1dcnn", "ezuma2020"]:
+            # MC1DCNN: DC-removed 2048-pt FFT Power Spectrum -> 8-channel uniform sub-bands -> (8, 256)
+            spectrum = self.preprocessor.process_fgcs(raw_sig)
+            channels = self.preprocessor.channelizer.transform(spectrum)
+            out_tensor = channels.astype(np.float32)
 
-        elif self.model_name == "mobilenetv3small":
+        elif name in ["dscnn", "tinyml", "baseline_cnn", "medaiyese2022"]:
+            # DSCNN (TinyML): 1D real RF waveform -> train-fitted Z-score normalized -> (1, 2048)
+            norm_sig = (raw_sig - self.norm_stats["mean"]) / (self.norm_stats["std"] + 1e-8)
+            out_tensor = np.expand_dims(norm_sig, axis=0).astype(np.float32)
+
+        elif name in ["compressed_sensing", "cs_cnn", "compressive_sensing", "mo2022"]:
+            # Compressive Sensing: y = Phi @ x with fixed deterministic Gaussian matrix -> (1, 1024)
+            compressed = self.preprocessor.process_compressed(raw_sig)
+            out_tensor = np.expand_dims(compressed, axis=0).astype(np.float32)
+
+        elif name in ["vardhan", "vardhanrfnet", "vardhan_rf"]:
+            # VARDHAN: 1D real RF waveform -> train-fitted Z-score normalized -> (1, 2048)
+            norm_sig = (raw_sig - self.norm_stats["mean"]) / (self.norm_stats["std"] + 1e-8)
+            out_tensor = np.expand_dims(norm_sig, axis=0).astype(np.float32)
+
+        elif name in ["mobilenetv3small", "mobilenetv3", "spectrogram_cnn", "howard2019"]:
             # 2D STFT Spectrogram Matrix -> (1, freq_bins=65, time_frames=61)
             freqs, times, p_db = self.preprocessor.spectrogram_processor.transform(raw_sig)
             p_norm = (p_db - np.mean(p_db)) / (np.std(p_db) + 1e-8)

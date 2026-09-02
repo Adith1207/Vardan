@@ -83,45 +83,55 @@ def test_constants():
 def test_models_instantiation():
     """Test model architectures compile and can perform a forward pass."""
     import torch
-    from models import FGCS2019DNN, Baseline1DCNN, DSCNN, MobileNetV3Small, VardhanRFNet, get_model
-    
+    from models import FGCS2019DNN, Baseline1DCNN, CompressiveSensingCNN, DSCNN, MobileNetV3Small, VardhanRFNet, get_model
+
     # 1. Check FGCS 2019 DNN (1D spectrum)
     x_spec = torch.randn(2, 2048)
     model_fgcs = FGCS2019DNN(in_features=2048, num_classes=4)
     out_fgcs = model_fgcs(x_spec)
     assert out_fgcs.shape == (2, 4)
 
-    # 2. Check 1D waveform baselines
-    x_1d = torch.randn(2, 2, 2048)  # batch size 2, 2 channels, 2048 sequence length
-    
-    model_1d = Baseline1DCNN(in_channels=2, num_classes=4, seq_length=2048)
-    out_1d = model_1d(x_1d)
-    assert out_1d.shape == (2, 4)
-    
-    model_dscnn = DSCNN(in_channels=2, num_classes=4, seq_length=2048)
+    # 2. Check MC1DCNN baseline (8 sub-band channels, length 256)
+    x_mc1d = torch.randn(2, 8, 256)
+    model_mc1d = Baseline1DCNN(in_channels=8, num_classes=4, seq_length=256)
+    out_mc1d = model_mc1d(x_mc1d)
+    assert out_mc1d.shape == (2, 4)
+
+    # 3. Check 1D waveform baselines (1 channel, length 2048)
+    x_1d = torch.randn(2, 1, 2048)
+
+    model_dscnn = DSCNN(in_channels=1, num_classes=4, seq_length=2048)
     out_dscnn = model_dscnn(x_1d)
     assert out_dscnn.shape == (2, 4)
-    
-    # 3. Check custom Vardhan model
-    model_vardhan = VardhanRFNet(in_channels=2, num_classes=4, seq_length=2048)
+
+    # 4. Check Compressive Sensing baseline (1 channel, length 1024)
+    x_cs = torch.randn(2, 1, 1024)
+    model_cs = CompressiveSensingCNN(in_channels=1, num_classes=4, seq_length=1024)
+    out_cs = model_cs(x_cs)
+    assert out_cs.shape == (2, 4)
+
+    # 5. Check custom Vardhan model (1 channel, length 2048)
+    model_vardhan = VardhanRFNet(in_channels=1, num_classes=4, seq_length=2048)
     out_vardhan = model_vardhan(x_1d)
     assert out_vardhan.shape == (2, 4)
-    
-    # 4. Check 2D spectrogram baseline
-    x_2d = torch.randn(2, 1, 65, 61)  # batch size 2, 1 channel, 65 frequency bins, 61 time frames
+
+    # 6. Check 2D spectrogram baseline
+    x_2d = torch.randn(2, 1, 65, 61)
     model_2d = MobileNetV3Small(num_classes=4)
     out_2d = model_2d(x_2d)
     assert out_2d.shape == (2, 4)
 
-    # 5. Check model_factory get_model for all 5 models
+    # 7. Check model_factory get_model for all 6 models
     for m_name, input_t in [
         ("fgcs2019dnn", x_spec),
-        ("baseline1dcnn", x_1d),
+        ("baseline1dcnn", x_mc1d),
         ("dscnn", x_1d),
+        ("compressed_sensing", x_cs),
         ("mobilenetv3small", x_2d),
         ("vardhan", x_1d),
     ]:
         m = get_model(m_name)
         out = m(input_t)
         assert out.shape == (2, 4), f"Model factory failed for {m_name}: got {out.shape}"
+
 

@@ -149,7 +149,7 @@ def test_lazy_dataset_reads_from_kaggle_layout():
 
         assert len(dataset) == 2
         x_tensor, label = dataset[0]
-        assert x_tensor.shape == (2, 2048)
+        assert x_tensor.shape == (1, 2048)
         assert label == 1  # AR Drone label index
         assert torch.isfinite(x_tensor).all()
 

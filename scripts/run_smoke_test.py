@@ -56,10 +56,11 @@ def run_full_smoke_test_suite(
 
     models_specs = [
         ("FGCS2019DNN", "fgcs2019dnn", (2048,)),
-        ("Baseline1DCNN", "baseline1dcnn", (2, 2048)),
-        ("DSCNN", "dscnn", (2, 2048)),
+        ("Baseline1DCNN", "baseline1dcnn", (8, 256)),
+        ("DSCNN", "dscnn", (1, 2048)),
+        ("CompressiveSensing", "compressed_sensing", (1, 1024)),
         ("MobileNetV3Small", "mobilenetv3small", (1, 65, 61)),
-        ("VardhanRFNet", "vardhan", (2, 2048)),
+        ("VardhanRFNet", "vardhan", (1, 2048)),
     ]
 
     # -------------------------------------------------------------------

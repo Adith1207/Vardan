@@ -13,9 +13,9 @@ except ImportError:
 
 
 class Baseline1DCNN(nn.Module):
-    """Standard 1D Convolutional Neural Network baseline for raw RF waveform input."""
+    """Standard 1D Convolutional Neural Network baseline for multi-channel sub-band spectrum input (Allahham et al. 2020)."""
 
-    def __init__(self, in_channels: int = 2, num_classes: int = 4, seq_length: int = 2048):
+    def __init__(self, in_channels: int = 8, num_classes: int = 4, seq_length: int = 256):
         super().__init__()
         if not HAS_TORCH:
             return
@@ -50,9 +50,9 @@ class Baseline1DCNN(nn.Module):
 
 
 class DSCNN(nn.Module):
-    """Depthwise Separable Convolutional Neural Network baseline (TinyML optimized)."""
+    """Depthwise Separable Convolutional Neural Network baseline for 1D raw RF waveform (Medaiyese et al. 2022)."""
 
-    def __init__(self, in_channels: int = 2, num_classes: int = 4, seq_length: int = 2048):
+    def __init__(self, in_channels: int = 1, num_classes: int = 4, seq_length: int = 2048):
         super().__init__()
         if not HAS_TORCH:
             return
@@ -76,7 +76,7 @@ class DSCNN(nn.Module):
         self.fc = nn.Linear(self.flat_features, num_classes)
 
     def forward(self, x):
-        """Forward pass."""
+        """Forward pass. Shape of x: (batch_size, in_channels, seq_length)."""
         if not HAS_TORCH:
             return x
         x = self.relu1(self.conv1(x))
@@ -85,6 +85,46 @@ class DSCNN(nn.Module):
         x = self.pool(x)
         x = x.view(x.size(0), -1)
         return self.fc(x)
+
+
+class CompressiveSensingCNN(nn.Module):
+    """1D CNN baseline for compressively-sensed RF measurements (Mo et al. 2022)."""
+
+    def __init__(self, in_channels: int = 1, num_classes: int = 4, seq_length: int = 1024):
+        super().__init__()
+        if not HAS_TORCH:
+            return
+
+        self.conv1 = nn.Conv1d(in_channels, 32, kernel_size=11, stride=2, padding=5)
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool1d(kernel_size=2)
+
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=5, stride=1, padding=2)
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool1d(kernel_size=2)
+
+        dummy_input = torch.zeros(1, in_channels, seq_length)
+        with torch.no_grad():
+            dummy_out = self.pool2(self.relu2(self.conv2(self.pool1(self.relu1(self.conv1(dummy_input))))))
+            self.flat_features = dummy_out.numel()
+
+        self.fc1 = nn.Linear(self.flat_features, 128)
+        self.relu3 = nn.ReLU()
+        self.fc2 = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        """Forward pass. Shape of x: (batch_size, in_channels, seq_length)."""
+        if not HAS_TORCH:
+            return x
+        x = self.pool1(self.relu1(self.conv1(x)))
+        x = self.pool2(self.relu2(self.conv2(x)))
+        x = x.view(x.size(0), -1)
+        x = self.relu3(self.fc1(x))
+        return self.fc2(x)
+
+
+CS_CNN = CompressiveSensingCNN
+
 
 
 class MobileNetV3Small(nn.Module):

@@ -219,10 +219,11 @@ def run_comprehensive_verification(
 
     models_contracts = [
         ("FGCS2019DNN", "fgcs2019dnn", (4, 2048), "1D FFT Power Spectrum"),
-        ("Baseline1DCNN", "baseline1dcnn", (4, 2, 2048), "2-channel I/Q Waveform"),
-        ("DSCNN", "dscnn", (4, 2, 2048), "2-channel I/Q Waveform"),
+        ("Baseline1DCNN", "baseline1dcnn", (4, 8, 256), "8-Channel Sub-band Spectrum"),
+        ("DSCNN", "dscnn", (4, 1, 2048), "1D Real RF Waveform"),
+        ("CompressiveSensing", "compressed_sensing", (4, 1, 1024), "Compressive Measurement Vector"),
         ("MobileNetV3Small", "mobilenetv3small", (4, 1, 65, 61), "2D STFT Spectrogram"),
-        ("VardhanRFNet", "vardhan", (4, 2, 2048), "2-channel I/Q Waveform"),
+        ("VardhanRFNet", "vardhan", (4, 1, 2048), "1D Real RF Waveform"),
     ]
 
     use_mock_dataset = mock or not has_real_files

@@ -30,7 +30,7 @@ from .raw_loader import DroneRFLoader
 from .fft import FFTProcessor
 from .normalization import SignalNormalizer
 from .channelization import SpectrumChannelizer
-from .compression import CompressedSensingProcessor
+from .compression import CompressiveSensingMatrix, CompressedSensingProcessor
 from .spectrogram import SpectrogramProcessor
 
 
@@ -45,7 +45,7 @@ class DroneRFPreprocessor:
         remove_dc: bool = REMOVE_DC_COMPONENT,
         normalization: str = "max",
         channel_count: int = 8,
-        channel_overlap: float = 0.50,
+        channel_overlap: float = 0.0,
         compression_ratio: float = 0.50,
         fs: Optional[float] = None,
     ):
@@ -66,11 +66,14 @@ class DroneRFPreprocessor:
             overlap=channel_overlap,
         )
 
-        self.compressor = (
-            CompressedSensingProcessor(
-                compression_ratio=compression_ratio
-            )
+        self.cs_matrix = CompressiveSensingMatrix(
+            n_input=2048,
+            n_compressed=1024,
+            seed=42,
         )
+
+        self.compressor = self.cs_matrix
+
 
         self.fs = fs
 
@@ -171,22 +174,14 @@ class DroneRFPreprocessor:
             )
 
         compressed = (
-            self.compressor.transform(
+            self.cs_matrix.transform(
                 signal
             )
         )
 
-        spectrum = self.fft_processor.process(
-            compressed,
-            representation="power",
-            keep_full_spectrum=True,
-        )
+        compressed_norm = (compressed - np.mean(compressed)) / (np.std(compressed) + 1e-8)
 
-        spectrum = self.normalizer.transform(
-            spectrum
-        )
-
-        return spectrum.astype(
+        return compressed_norm.astype(
             np.float32
         )
 
