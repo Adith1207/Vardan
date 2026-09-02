@@ -452,6 +452,16 @@ def execute_baseline_suite(
             "in_shape": (1, 2048),
         },
         {
+            "title": "CompressiveSensingCNN",
+            "key": "compressed_sensing",
+            "batch_size": override_batch_size or 32,
+            "epochs": override_epochs or 100,
+            "lr": override_lr or 1e-3,
+            "optimizer": "Adam",
+            "weight_decay": 0.0,
+            "in_shape": (1, 1024),
+        },
+        {
             "title": "MobileNetV3Small",
             "key": "mobilenetv3small",
             "batch_size": override_batch_size or 32,
@@ -514,7 +524,7 @@ def execute_baseline_suite(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Master baseline training & evaluation runner for Vardan.")
-    parser.add_argument("--models", type=str, default="all", help="Comma-separated model keys or 'all' (options: fgcs2019dnn, baseline1dcnn, dscnn, mobilenetv3small, vardhan, all)")
+    parser.add_argument("--models", type=str, default="all", help="Comma-separated model keys or 'all' (options: fgcs2019dnn, baseline1dcnn, dscnn, compressed_sensing, mobilenetv3small, vardhan, all)")
     parser.add_argument("--raw_data_dir", type=str, default=None, help="Path to raw DroneRF dataset directory")
     parser.add_argument("--splits_dir", type=str, default=None, help="Directory containing train.csv, val.csv, test.csv")
     parser.add_argument("--output_dir", type=str, default=None, help="Directory to save metrics, histories, and matrices")
