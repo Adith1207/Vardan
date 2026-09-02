@@ -427,6 +427,8 @@ def execute_baseline_suite(
             "batch_size": override_batch_size or 10,
             "epochs": override_epochs or 200,
             "lr": override_lr or 1e-3,
+            "optimizer": "Adam",
+            "weight_decay": 0.0,
             "in_shape": (2048,),
         },
         {
@@ -435,6 +437,8 @@ def execute_baseline_suite(
             "batch_size": override_batch_size or 32,
             "epochs": override_epochs or 100,
             "lr": override_lr or 1e-3,
+            "optimizer": "Adam",
+            "weight_decay": 0.0,
             "in_shape": (2, 2048),
         },
         {
@@ -443,6 +447,8 @@ def execute_baseline_suite(
             "batch_size": override_batch_size or 32,
             "epochs": override_epochs or 100,
             "lr": override_lr or 1e-3,
+            "optimizer": "Adam",
+            "weight_decay": 0.0,
             "in_shape": (2, 2048),
         },
         {
@@ -451,6 +457,8 @@ def execute_baseline_suite(
             "batch_size": override_batch_size or 32,
             "epochs": override_epochs or 100,
             "lr": override_lr or 1e-3,
+            "optimizer": "Adam",
+            "weight_decay": 0.0,
             "in_shape": (1, 65, 61),
         },
         {

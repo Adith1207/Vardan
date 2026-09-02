@@ -1,25 +1,63 @@
-# Vardan Model Training Configuration
+# Vardan & Baseline Training Configuration
+# Canonical 4-class Counter-UAS Experimental Protocol
 
-training:
-  epochs: 50
-  batch_size: 64
+common:
   device: "cuda"  # Options: cuda, cpu, mps, auto
   num_workers: 4
   pin_memory: true
-  save_every: 5   # checkpoint frequency in epochs
+  save_every: 5   # checkpoint frequency in epochs for last.pt
+  checkpoint_criterion: "min_val_loss"  # best.pt saved on lowest validation loss
+  random_seed: 42
 
 optimizer:
-  type: "AdamW"   # Options: Adam, AdamW, SGD
-  lr: 0.001
-  weight_decay: 0.0001
-  momentum: 0.9   # for SGD
+  default_type: "Adam"
+  default_lr: 0.001
+  default_weight_decay: 0.0
 
 scheduler:
-  type: "ReduceLROnPlateau"  # Options: ReduceLROnPlateau, CosineAnnealingLR, None
-  factor: 0.5
-  patience: 5
-  min_lr: 0.00001
+  type: null  # Constant learning rate for baseline protocol (scheduler=None)
 
 loss:
-  type: "CrossEntropyLoss"  # Options: CrossEntropyLoss, FocalLoss
-  label_smoothing: 0.1
+  type: "CrossEntropyLoss"
+  label_smoothing: 0.0
+
+models:
+  fgcs2019dnn:
+    title: "FGCS2019DNN"
+    optimizer: "Adam"
+    lr: 0.001
+    weight_decay: 0.0
+    batch_size: 10
+    epochs: 200
+
+  baseline1dcnn:
+    title: "Baseline1DCNN"
+    optimizer: "Adam"
+    lr: 0.001
+    weight_decay: 0.0
+    batch_size: 32
+    epochs: 100
+
+  dscnn:
+    title: "DSCNN"
+    optimizer: "Adam"
+    lr: 0.001
+    weight_decay: 0.0
+    batch_size: 32
+    epochs: 100
+
+  mobilenetv3small:
+    title: "MobileNetV3Small"
+    optimizer: "Adam"
+    lr: 0.001
+    weight_decay: 0.0
+    batch_size: 32
+    epochs: 100
+
+  vardhan:
+    title: "VardhanRFNet"
+    optimizer: "AdamW"
+    lr: 0.001
+    weight_decay: 0.0001
+    batch_size: 32
+    epochs: 100
