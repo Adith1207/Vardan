@@ -72,36 +72,91 @@ def run_preflight_checks(
     df_va = pd.read_csv(val_csv)
     df_te = pd.read_csv(test_csv)
 
-    total_files = len(df_tr) + len(df_va) + len(df_te)
-    print(f"1. Split counts: Train={len(df_tr)}, Val={len(df_va)}, Test={len(df_te)}, Total={total_files}")
-    assert len(df_tr) == 308, f"Expected 308 train files, got {len(df_tr)}"
-    assert len(df_va) == 73, f"Expected 73 val files, got {len(df_va)}"
-    assert len(df_te) == 73, f"Expected 73 test files, got {len(df_te)}"
+    assert len(df_tr) > 0, "Train split manifest is empty!"
+    assert len(df_va) > 0, "Val split manifest is empty!"
+    assert len(df_te) > 0, "Test split manifest is empty!"
 
-    # Recording-level isolation check
-    tr_recs = set(df_tr["recording_id"]) if "recording_id" in df_tr.columns else set()
-    va_recs = set(df_va["recording_id"]) if "recording_id" in df_va.columns else set()
-    te_recs = set(df_te["recording_id"]) if "recording_id" in df_te.columns else set()
+    # 1. Detect whether evaluation is using PRIMARY RECORDING-LEVEL or DIAGNOSTIC SEGMENT-LEVEL split
+    is_segment_split = ("segment_offset" in df_tr.columns) or (len(df_tr) > 308) or ("diagnostic_segment" in str(train_csv))
 
-    if tr_recs:
-        assert len(tr_recs & va_recs) == 0, "Recording overlap between Train and Val!"
-        assert len(tr_recs & te_recs) == 0, "Recording overlap between Train and Test!"
-        assert len(va_recs & te_recs) == 0, "Recording overlap between Val and Test!"
-        print("[OK] Zero recording overlap verified.")
+    if is_segment_split:
+        print("\n>>> EVALUATING: DIAGNOSTIC SEGMENT-LEVEL SPLIT")
+        total_segments = len(df_tr) + len(df_va) + len(df_te)
+        print(f"1. Segment counts: Train={len(df_tr)}, Val={len(df_va)}, Test={len(df_te)}, Total={total_segments}")
+        assert len(df_tr) == 1586, f"Expected 1586 train segments, got {len(df_tr)}"
+        assert len(df_va) == 342, f"Expected 342 val segments, got {len(df_va)}"
+        assert len(df_te) == 342, f"Expected 342 test segments, got {len(df_te)}"
+        assert total_segments == 2270, f"Expected total 2270 segments, got {total_segments}"
 
-    # File path isolation check
-    tr_paths = set(df_tr["relative_path"])
-    va_paths = set(df_va["relative_path"])
-    te_paths = set(df_te["relative_path"])
+        # Verify zero exact-window leakage
+        if "segment_unique_id" in df_tr.columns:
+            tr_uids = set(df_tr["segment_unique_id"])
+            va_uids = set(df_va["segment_unique_id"])
+            te_uids = set(df_te["segment_unique_id"])
+        elif "segment_offset" in df_tr.columns:
+            tr_uids = set(df_tr["relative_path"] + "#" + df_tr["segment_offset"].astype(str))
+            va_uids = set(df_va["relative_path"] + "#" + df_va["segment_offset"].astype(str))
+            te_uids = set(df_te["relative_path"] + "#" + df_te["segment_offset"].astype(str))
+        else:
+            tr_uids, va_uids, te_uids = set(), set(), set()
 
-    assert len(tr_paths & va_paths) == 0, "File overlap between Train and Val!"
-    assert len(tr_paths & te_paths) == 0, "File overlap between Train and Test!"
-    assert len(va_paths & te_paths) == 0, "File overlap between Val and Test!"
-    print("[OK] Zero file overlap verified.")
+        if tr_uids:
+            assert len(tr_uids & va_uids) == 0, "Exact 2048-sample window overlap between Train and Val!"
+            assert len(tr_uids & te_uids) == 0, "Exact 2048-sample window overlap between Train and Test!"
+            assert len(va_uids & te_uids) == 0, "Exact 2048-sample window overlap between Val and Test!"
+            print("[OK] Zero exact window leakage verified across Train, Val, and Test.")
+
+        # Recording and source file overlap reporting (intentional for segment-level diagnostics)
+        tr_recs = set(df_tr["recording_id"]) if "recording_id" in df_tr.columns else set()
+        va_recs = set(df_va["recording_id"]) if "recording_id" in df_va.columns else set()
+        te_recs = set(df_te["recording_id"]) if "recording_id" in df_te.columns else set()
+
+        tr_paths = set(df_tr["relative_path"])
+        va_paths = set(df_va["relative_path"])
+        te_paths = set(df_te["relative_path"])
+
+        if tr_recs:
+            print(f"[NOTE] Shared recording sessions (Intentional): Train-Val: {len(tr_recs & va_recs)}, Train-Test: {len(tr_recs & te_recs)}, Val-Test: {len(va_recs & te_recs)}")
+        print(f"[NOTE] Shared source files (Intentional): Train-Val: {len(tr_paths & va_paths)}, Train-Test: {len(tr_paths & te_paths)}, Val-Test: {len(va_paths & te_paths)}")
+
+    else:
+        print("\n>>> EVALUATING: PRIMARY RECORDING-LEVEL SPLIT")
+        total_files = len(df_tr) + len(df_va) + len(df_te)
+        print(f"1. Split counts: Train={len(df_tr)}, Val={len(df_va)}, Test={len(df_te)}, Total={total_files}")
+        assert len(df_tr) == 308, f"Expected 308 train files, got {len(df_tr)}"
+        assert len(df_va) == 73, f"Expected 73 val files, got {len(df_va)}"
+        assert len(df_te) == 73, f"Expected 73 test files, got {len(df_te)}"
+        assert total_files == 454, f"Expected 454 total files, got {total_files}"
+
+        # Recording-level isolation check
+        tr_recs = set(df_tr["recording_id"]) if "recording_id" in df_tr.columns else set()
+        va_recs = set(df_va["recording_id"]) if "recording_id" in df_va.columns else set()
+        te_recs = set(df_te["recording_id"]) if "recording_id" in df_te.columns else set()
+
+        if tr_recs:
+            assert len(tr_recs & va_recs) == 0, "Recording overlap between Train and Val!"
+            assert len(tr_recs & te_recs) == 0, "Recording overlap between Train and Test!"
+            assert len(va_recs & te_recs) == 0, "Recording overlap between Val and Test!"
+            print("[OK] Zero recording overlap verified.")
+
+        # File path isolation check
+        tr_paths = set(df_tr["relative_path"])
+        va_paths = set(df_va["relative_path"])
+        te_paths = set(df_te["relative_path"])
+
+        assert len(tr_paths & va_paths) == 0, "File overlap between Train and Val!"
+        assert len(tr_paths & te_paths) == 0, "File overlap between Train and Test!"
+        assert len(va_paths & te_paths) == 0, "File overlap between Val and Test!"
+        print("[OK] Zero file overlap verified.")
+
+    # Verify all four classes are represented in all splits
+    for name_s, df_s in [("Train", df_tr), ("Val", df_va), ("Test", df_te)]:
+        cls_present = df_s["drone_class"].nunique() if "drone_class" in df_s.columns else 0
+        assert cls_present == 4, f"{name_s} split has {cls_present} classes, expected 4"
 
     assert NUM_CLASSES == 4, f"NUM_CLASSES must be 4, got {NUM_CLASSES}"
     assert CLASS_MAPPING == RAW_CLASS_TO_INDEX, "CLASS_MAPPING mismatch with constants.py!"
-    print("[OK] Canonical 4 classes verified.")
+    print("[OK] Canonical 4 classes verified across Train, Val, and Test.")
 
     # Fit train-only normalization stats
     train_stats = fit_train_normalization_stats(train_csv, max_files=10, raw_data_dir=raw_data_dir)
@@ -109,6 +164,7 @@ def run_preflight_checks(
 
     print("[OK] All preflight checks PASSED cleanly!\n")
     return True, train_stats
+
 
 
 def train_single_model(
