@@ -68,6 +68,7 @@ class BaselineTrainer:
         num_classes: int = NUM_CLASSES,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.0,
+        optimizer_type: str = "Adam",
         device: Optional[str] = None,
         seed: int = 42,
     ):
@@ -79,15 +80,34 @@ class BaselineTrainer:
 
         self.model_name = model_name
         self.num_classes = num_classes
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.optimizer_type = optimizer_type
         self.device = device or get_target_device()
         self.model = model.to(self.device)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(
-            self.model.parameters(),
-            lr=learning_rate,
-            weight_decay=weight_decay,
-        )
+        
+        opt_upper = optimizer_type.upper().strip()
+        if opt_upper == "ADAMW":
+            self.optimizer = optim.AdamW(
+                self.model.parameters(),
+                lr=learning_rate,
+                weight_decay=weight_decay,
+            )
+        elif opt_upper == "SGD":
+            self.optimizer = optim.SGD(
+                self.model.parameters(),
+                lr=learning_rate,
+                weight_decay=weight_decay,
+                momentum=0.9,
+            )
+        else:
+            self.optimizer = optim.Adam(
+                self.model.parameters(),
+                lr=learning_rate,
+                weight_decay=weight_decay,
+            )
         self.scheduler = None
 
         self.best_val_loss = float("inf")

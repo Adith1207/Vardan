@@ -131,11 +131,13 @@ def train_single_model(
     bs = model_cfg["batch_size"]
     epochs = model_cfg["epochs"]
     lr = model_cfg["lr"]
+    opt_type = model_cfg.get("optimizer", "Adam")
+    wd = model_cfg.get("weight_decay", 0.0)
     in_shape = model_cfg["in_shape"]
 
     print("=================================================================")
     print(f"      EXPERIMENT: {title} ({key})                                ")
-    print(f"      Epochs: {epochs} | Batch Size: {bs} | Learning Rate: {lr}   ")
+    print(f"      Epochs: {epochs} | Batch Size: {bs} | Optimizer: {opt_type} | LR: {lr} (WD: {wd})")
     print("=================================================================")
 
     set_reproducible_seed(42)
@@ -174,7 +176,14 @@ def train_single_model(
 
     # Instantiate Model
     model = get_model(key, num_classes=4)
-    trainer = BaselineTrainer(model=model, model_name=key, learning_rate=lr, seed=42)
+    trainer = BaselineTrainer(
+        model=model,
+        model_name=key,
+        learning_rate=lr,
+        weight_decay=wd,
+        optimizer_type=opt_type,
+        seed=42,
+    )
 
     model_ckpt_dir = checkpoints_dir / key
     model_ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -209,7 +218,8 @@ def train_single_model(
         "segment_length": 2048,
         "batch_size": bs,
         "learning_rate": lr,
-        "optimizer": "Adam",
+        "optimizer": opt_type,
+        "weight_decay": wd,
         "loss": "CrossEntropyLoss",
         "total_epochs": epochs,
         "start_epoch": start_epoch,
@@ -449,6 +459,8 @@ def execute_baseline_suite(
             "batch_size": override_batch_size or 32,
             "epochs": override_epochs or 100,
             "lr": override_lr or 1e-3,
+            "optimizer": "AdamW",
+            "weight_decay": 1e-4,
             "in_shape": (2, 2048),
         },
     ]
