@@ -83,10 +83,15 @@ def test_constants():
 def test_models_instantiation():
     """Test model architectures compile and can perform a forward pass."""
     import torch
-    from models.baselines import Baseline1DCNN, DSCNN, MobileNetV3Small
-    from models.vardhan import VardhanRFNet
+    from models import FGCS2019DNN, Baseline1DCNN, DSCNN, MobileNetV3Small, VardhanRFNet, get_model
     
-    # Check 1D waveform baselines
+    # 1. Check FGCS 2019 DNN (1D spectrum)
+    x_spec = torch.randn(2, 2048)
+    model_fgcs = FGCS2019DNN(in_features=2048, num_classes=4)
+    out_fgcs = model_fgcs(x_spec)
+    assert out_fgcs.shape == (2, 4)
+
+    # 2. Check 1D waveform baselines
     x_1d = torch.randn(2, 2, 2048)  # batch size 2, 2 channels, 2048 sequence length
     
     model_1d = Baseline1DCNN(in_channels=2, num_classes=4, seq_length=2048)
@@ -97,14 +102,26 @@ def test_models_instantiation():
     out_dscnn = model_dscnn(x_1d)
     assert out_dscnn.shape == (2, 4)
     
-    # Check custom Vardhan model
+    # 3. Check custom Vardhan model
     model_vardhan = VardhanRFNet(in_channels=2, num_classes=4, seq_length=2048)
     out_vardhan = model_vardhan(x_1d)
     assert out_vardhan.shape == (2, 4)
     
-    # Check 2D spectrogram baseline
-    x_2d = torch.randn(2, 1, 513, 100)  # batch size 2, 1 channel, 513 frequency bins, 100 time frames
+    # 4. Check 2D spectrogram baseline
+    x_2d = torch.randn(2, 1, 65, 61)  # batch size 2, 1 channel, 65 frequency bins, 61 time frames
     model_2d = MobileNetV3Small(num_classes=4)
     out_2d = model_2d(x_2d)
     assert out_2d.shape == (2, 4)
+
+    # 5. Check model_factory get_model for all 5 models
+    for m_name, input_t in [
+        ("fgcs2019dnn", x_spec),
+        ("baseline1dcnn", x_1d),
+        ("dscnn", x_1d),
+        ("mobilenetv3small", x_2d),
+        ("vardhan", x_1d),
+    ]:
+        m = get_model(m_name)
+        out = m(input_t)
+        assert out.shape == (2, 4), f"Model factory failed for {m_name}: got {out.shape}"
 
