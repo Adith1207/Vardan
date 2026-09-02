@@ -73,3 +73,8 @@ mlruns/
 *.zip
 *.tar
 *.gz
+
+# Generated experiment results
+results/baselines/
+results/diagnostics/
+results/verification_summary.json
