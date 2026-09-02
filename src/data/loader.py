@@ -287,11 +287,17 @@ class DroneRFLazyDataset(Dataset):
 
         # Build lazy index: (relative_file_path, sample_offset, class_label)
         self.items = []
+        has_explicit_offset = "segment_offset" in self.df_split.columns
         for idx, row in self.df_split.iterrows():
             rel_p = row["relative_path"]
             label = CLASS_MAPPING.get(row["drone_class"], 0)
-            for offset in range(self.samples_per_file):
+            if has_explicit_offset:
+                offset = int(row["segment_offset"])
                 self.items.append((rel_p, offset, label))
+            else:
+                for offset in range(self.samples_per_file):
+                    self.items.append((rel_p, offset, label))
+
 
     def __len__(self) -> int:
         return len(self.items)
