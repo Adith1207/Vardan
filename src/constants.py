@@ -29,4 +29,6 @@ RAW_CLASS_TO_INDEX = {
     "Bepop drone": 2,
     "Phantom drone": 3,
 }
-
+# Canonical 4-class count and class names list
+NUM_CLASSES = len(LABEL_MAP)
+CLASS_NAMES = [LABEL_MAP[i] for i in range(NUM_CLASSES)]

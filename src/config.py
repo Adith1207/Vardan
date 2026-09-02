@@ -50,4 +50,4 @@ NUM_FOLDS = 10
 
 # Model Settings
 INPUT_FEATURES = 2048
-NUM_CLASSES = 4  # AR Drone, Bebop Drone, Phantom Drone, Background
+from constants import NUM_CLASSES
