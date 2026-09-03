@@ -1,14 +1,14 @@
 {
   "experiment_name": "EXP_BASELINE1DCNN_FAITHFUL",
   "description": "Faithful 10-fold reproduction of Allahham et al. MC1DCNN on complete DroneRF benchmark",
-  "timestamp": "2026-09-03T18:25:42.851680",
+  "timestamp": "2026-09-03T13:09:15.790917",
   "num_folds": 10,
   "max_folds": null,
   "epochs": 100,
   "batch_size": 32,
   "learning_rate": 0.001,
   "seed": 1,
-  "device": "cpu",
+  "device": "cuda",
   "feature_dim": "8x256 (8 uniform sub-bands of 10 MHz each from 2048-pt DFT)",
   "num_classes": 4,
   "class_mapping": {
