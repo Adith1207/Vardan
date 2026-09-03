@@ -2,9 +2,9 @@
 test_train_vardhan_v2a.py
 -------------------------
 
-Pytest suite for the VARDHAN-v2A training runner, profiling, and in-memory caching.
+Pytest suite for the VARDHAN-v2A training runner, profiling, caching, class weighting, and scheduling.
 Tests strict split integrity, real/mock data loading, parameter count,
-cached vs uncached numerical equality, profiling benchmark, checkpoint creation, and metrics writing.
+cached vs uncached numerical equality, class weights computation, cosine scheduling, and metrics writing.
 """
 
 import json
@@ -30,6 +30,7 @@ from data.loader import DroneRFLazyDataset, fit_train_normalization_stats, get_d
 from scripts.train_vardhan_v2a import (
     verify_strict_split_integrity,
     verify_model_and_real_pipeline,
+    compute_train_class_weights,
     preload_split_dataset,
     run_profiling_benchmark,
 )
@@ -55,6 +56,20 @@ def test_strict_split_verification_function():
 
     passed = verify_strict_split_integrity(train_csv, val_csv, test_csv)
     assert passed is True
+
+
+def test_compute_train_class_weights():
+    """Verify exact inverse frequency class weighting computed strictly from train.csv."""
+    train_csv = PROJECT_ROOT / "data" / "splits" / "train.csv"
+    w_tensor, w_dict = compute_train_class_weights(train_csv, samples_per_file=50)
+
+    assert len(w_tensor) == 4
+    # Train counts: 2050 (no_drone), 6000 (ar_drone), 6300 (bebop_drone), 1050 (phantom_drone)
+    # Total = 15400
+    assert pytest.approx(w_tensor[0].item(), 0.001) == 15400 / (4 * 2050)
+    assert pytest.approx(w_tensor[1].item(), 0.001) == 15400 / (4 * 6000)
+    assert pytest.approx(w_tensor[2].item(), 0.001) == 15400 / (4 * 6300)
+    assert pytest.approx(w_tensor[3].item(), 0.001) == 15400 / (4 * 1050)
 
 
 def test_cached_vs_uncached_sample_numerical_equality():
@@ -163,7 +178,7 @@ def test_profiling_benchmark_execution(tmp_path):
 
 
 def test_mock_training_and_artifact_generation(tmp_path):
-    """Verify that a 1-epoch mock training run produces best.pt, last.pt, history.csv, metrics.json, and confusion_matrix.csv."""
+    """Verify that training artifacts and confusion matrices are saved."""
     splits_dir = PROJECT_ROOT / "data" / "splits"
     train_csv = splits_dir / "train.csv"
     val_csv = splits_dir / "val.csv"
@@ -175,8 +190,8 @@ def test_mock_training_and_artifact_generation(tmp_path):
     test_loader = get_dataloader(test_csv, model_name="vardhan", norm_stats=norm_stats, batch_size=4, mock=True, samples_per_file=2)
 
     model = VardhanV2A(num_classes=4)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.0001)
-    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0003, weight_decay=0.01)
+    loss_fn = nn.CrossEntropyLoss(label_smoothing=0.1)
     device = torch.device("cpu")
 
     out_dir = tmp_path / "results"

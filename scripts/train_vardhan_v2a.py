@@ -12,9 +12,11 @@ Features:
 - Comprehensive pre-flight split verification (zero recording leakage, zero file overlap).
 - Real-data forward/backward pipeline verification before training.
 - High-performance in-memory dataset caching (eliminates repeated quadratic ASCII parsing).
+- Class-weighted CrossEntropyLoss with inverse frequency weighting and label smoothing.
+- Cosine Annealing learning rate scheduling.
 - Profiling mode (--profile) with microsecond breakdown across I/O, transfer, forward, backward, and optimizer steps.
-- AdamW optimizer (lr=0.001, weight_decay=0.0001), CrossEntropyLoss, single GPU (CUDA when available).
-- Exports metrics.json, history.csv, confusion_matrix.csv, run_config.json, best.pt, and last.pt.
+- AdamW optimizer, single GPU (CUDA when available).
+- Exports metrics.json, history.csv, confusion_matrix.csv, val_confusion_matrix.csv, run_config.json, best.pt, and last.pt.
 """
 
 import argparse
@@ -28,7 +30,14 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 
 # Ensure project root and src are on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -106,6 +115,30 @@ def verify_strict_split_integrity(
     return True
 
 
+def compute_train_class_weights(
+    train_csv: Path,
+    samples_per_file: int = 50,
+) -> Tuple[torch.Tensor, Dict[str, float]]:
+    """Compute inverse class frequency weights strictly from training split sample counts.
+
+    weight_c = N_total / (num_classes * N_c)
+    """
+    df_tr = pd.read_csv(train_csv)
+    raw_counts = df_tr["drone_class"].value_counts().to_dict()
+
+    counts = [0] * 4
+    for raw_cls, idx in RAW_CLASS_TO_INDEX.items():
+        counts[idx] = raw_counts.get(raw_cls, 0) * samples_per_file
+
+    n_total = sum(counts)
+    num_classes = len(counts)
+    weights = [n_total / (num_classes * c) if c > 0 else 1.0 for c in counts]
+    w_tensor = torch.tensor(weights, dtype=torch.float32)
+
+    weights_dict = {LABEL_MAP[i]: float(w_tensor[i].item()) for i in range(4)}
+    return w_tensor, weights_dict
+
+
 def preload_split_dataset(
     split_csv: Path,
     norm_stats: Dict[str, float],
@@ -114,12 +147,7 @@ def preload_split_dataset(
     raw_data_dir: Optional[Union[str, Path]] = None,
     mock: bool = False,
 ) -> TensorDataset:
-    """
-    Pre-extract all segments from the split into contiguous RAM memory.
-    Reads each raw file once, applies train-fitted scalar normalization,
-    and returns a high-speed PyTorch TensorDataset.
-    Total RAM for 15,400 samples (Train): 15,400 x 1 x 2048 x 4 bytes ~= 120.3 MB.
-    """
+    """Pre-extract all segments from the split into contiguous RAM memory."""
     lazy_ds = DroneRFLazyDataset(
         split_csv=split_csv,
         model_name="vardhan",
@@ -212,10 +240,7 @@ def run_profiling_benchmark(
     profile_batches: int = 50,
     output_dir: Optional[Path] = None,
 ) -> Dict[str, float]:
-    """
-    Execute high-resolution microsecond profiling across the training loop.
-    Measures DataLoader wait, CPU->GPU transfer, model forward, loss, backward, and optimizer steps.
-    """
+    """Execute high-resolution microsecond profiling across the training loop."""
     print("=" * 75)
     print(f"STARTING HIGH-RESOLUTION PROFILING BENCHMARK ({profile_batches} BATCHES)")
     print("=" * 75)
@@ -309,7 +334,6 @@ def run_profiling_benchmark(
     mean_opt = float(np.mean(times_optimizer))
     mean_batch = float(np.mean(times_batch_total))
 
-    total_time_step = mean_wait + mean_xfer + mean_fwd + mean_loss + mean_bwd + mean_opt
     est_epoch_sec = (mean_batch / 1000.0) * len(loader)
 
     print("\nPROFILING SUMMARY TABLE (Mean per Batch over %d batches):" % profile_batches)
@@ -354,8 +378,8 @@ def train_one_epoch(
     loss_fn: nn.Module,
     device: torch.device,
     max_batches: Optional[int] = None,
-) -> Tuple[float, float, float]:
-    """Train for one epoch and return average loss, accuracy, and macro-F1."""
+) -> Tuple[float, float, float, float]:
+    """Train for one epoch and return average loss, accuracy, macro-F1, and balanced accuracy."""
     model.train()
     total_loss = 0.0
     all_preds: List[int] = []
@@ -380,7 +404,8 @@ def train_one_epoch(
     avg_loss = total_loss / len(all_targets)
     acc = accuracy_score(all_targets, all_preds)
     f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
-    return avg_loss, acc, f1
+    bal_acc = balanced_accuracy_score(all_targets, all_preds)
+    return avg_loss, acc, f1, bal_acc
 
 
 def evaluate_split(
@@ -389,7 +414,7 @@ def evaluate_split(
     loss_fn: nn.Module,
     device: torch.device,
     max_batches: Optional[int] = None,
-) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+) -> Tuple[float, float, float, float, np.ndarray, np.ndarray]:
     """Evaluate on a validation or test loader."""
     model.eval()
     total_loss = 0.0
@@ -413,22 +438,28 @@ def evaluate_split(
     avg_loss = total_loss / len(all_targets)
     acc = accuracy_score(all_targets, all_preds)
     f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
-    return avg_loss, acc, f1, np.array(all_targets), np.array(all_preds)
+    bal_acc = balanced_accuracy_score(all_targets, all_preds)
+    return avg_loss, acc, f1, bal_acc, np.array(all_targets), np.array(all_preds)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="VARDHAN-v2A Strict Recording-Level Benchmark Training Runner")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs (default: 100)")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs (default: 10)")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size (default: 32)")
-    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate for AdamW (default: 0.001)")
-    parser.add_argument("--weight_decay", type=float, default=0.0001, help="Weight decay for AdamW (default: 0.0001)")
+    parser.add_argument("--lr", type=float, default=0.0003, help="Learning rate for AdamW (default: 0.0003)")
+    parser.add_argument("--weight_decay", type=float, default=0.01, help="Weight decay for AdamW (default: 0.01)")
+    parser.add_argument("--label_smoothing", type=float, default=0.1, help="Label smoothing for CrossEntropyLoss (default: 0.1)")
+    parser.add_argument("--use_class_weights", action="store_true", default=True, help="Use inverse frequency class weights on train split (default: True)")
+    parser.add_argument("--no_class_weights", action="store_false", dest="use_class_weights", help="Disable class weighting")
+    parser.add_argument("--lr_scheduler", type=str, default="cosine", choices=["none", "cosine"], help="Learning rate scheduler (default: cosine)")
+    parser.add_argument("--min_lr", type=float, default=0.00001, help="Minimum learning rate for Cosine Annealing (default: 0.00001)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
     parser.add_argument("--device", type=str, default="cuda", help="Device preference ('cuda' or 'cpu')")
     parser.add_argument("--samples_per_file", type=int, default=50, help="Samples extracted per raw CSV file (default: 50)")
     parser.add_argument("--raw_data_dir", type=str, default=None, help="Base path to raw DroneRF dataset")
     parser.add_argument("--splits_dir", type=str, default="data/splits", help="Directory containing train.csv, val.csv, test.csv")
-    parser.add_argument("--output_dir", type=str, default="results/vardhan_v2a", help="Output directory for metrics and results")
-    parser.add_argument("--checkpoints_dir", type=str, default="models/checkpoints/vardhan_v2a", help="Output directory for checkpoints")
+    parser.add_argument("--output_dir", type=str, default="results/vardhan_v2a_controlled_exp_c", help="Output directory for metrics and results")
+    parser.add_argument("--checkpoints_dir", type=str, default="models/checkpoints/vardhan_v2a_controlled_exp_c", help="Output directory for checkpoints")
     parser.add_argument("--no_cache", action="store_true", help="Disable RAM preloading/caching and use on-demand lazy file reading")
     parser.add_argument("--num_workers", type=int, default=0, help="DataLoader num_workers (default: 0)")
     parser.add_argument("--pin_memory", action="store_true", default=True, help="Enable DataLoader pin_memory (default: True)")
@@ -472,11 +503,13 @@ def main():
     print(f"Seed:            {args.seed}")
     print(f"Epochs:          {args.epochs}")
     print(f"Batch Size:      {args.batch_size}")
-    print(f"Learning Rate:   {args.lr}")
+    print(f"Initial LR:      {args.lr}")
     print(f"Weight Decay:    {args.weight_decay}")
+    print(f"Label Smoothing: {args.label_smoothing}")
+    print(f"LR Scheduler:    {args.lr_scheduler} (min_lr: {args.min_lr})")
+    print(f"Class Weights:   {'ENABLED' if args.use_class_weights else 'DISABLED'}")
     print(f"Samples/File:    {args.samples_per_file}")
     print(f"Data Caching:    {'ENABLED (In-Memory RAM Preloading)' if use_cache else 'DISABLED (On-Demand File Reading)'}")
-    print(f"DataLoader:      num_workers={args.num_workers}, pin_memory={args.pin_memory}")
     print(f"Results Dir:     {output_dir}")
     print(f"Checkpoints Dir: {checkpoints_dir}")
 
@@ -492,7 +525,13 @@ def main():
     )
     print(f"Train Normalization Stats: {norm_stats}")
 
-    # 3. Instantiate Datasets & DataLoaders
+    # 3. Compute Train-Only Class Weights
+    class_weights_tensor, class_weights_dict = compute_train_class_weights(train_csv, args.samples_per_file)
+    print(f"\nComputed Train-Only Class Weights (N_total / (C * N_c)):")
+    for cls_name, w in class_weights_dict.items():
+        print(f"  - {cls_name:15s}: {w:.4f}")
+
+    # 4. Instantiate Datasets & DataLoaders
     if use_cache:
         print("\n[Data Caching] Preloading dataset splits into RAM memory...")
         train_ds = preload_split_dataset(train_csv, norm_stats, args.samples_per_file, 2048, args.raw_data_dir, args.mock)
@@ -559,14 +598,14 @@ def main():
             mock=args.mock,
         )
 
-    # 4. Instantiate VARDHAN-v2A model
+    # 5. Instantiate VARDHAN-v2A model
     model = VardhanV2A(num_classes=4).to(device)
 
-    # 5. Model & real-data pipeline verification
+    # 6. Model & real-data pipeline verification
     verify_model_and_real_pipeline(model, train_loader, device)
 
     run_config = {
-        "experiment_name": "VARDHAN_v2A_STRICT_BENCHMARK",
+        "experiment_name": "VARDHAN_v2A_CONTROLLED_EXP_C",
         "timestamp": datetime.datetime.now().isoformat(),
         "model_name": "VardhanV2A",
         "total_parameters": 69559,
@@ -577,12 +616,15 @@ def main():
         "batch_size": args.batch_size,
         "learning_rate": args.lr,
         "weight_decay": args.weight_decay,
+        "label_smoothing": args.label_smoothing,
+        "use_class_weights": args.use_class_weights,
+        "class_weights": class_weights_dict if args.use_class_weights else None,
+        "lr_scheduler": args.lr_scheduler,
+        "min_lr": args.min_lr,
         "optimizer": "AdamW",
-        "loss": "CrossEntropyLoss",
+        "loss": "CrossEntropyLoss(weighted, smoothed)" if args.use_class_weights else "CrossEntropyLoss(smoothed)",
         "samples_per_file": args.samples_per_file,
         "data_caching": use_cache,
-        "dataloader_num_workers": args.num_workers,
-        "dataloader_pin_memory": args.pin_memory,
         "raw_data_dir": str(args.raw_data_dir),
         "splits_dir": str(splits_dir),
         "class_mapping": RAW_CLASS_TO_INDEX,
@@ -595,9 +637,18 @@ def main():
         print("\n[--preflight_only specified] Preflight verification complete. Exiting.")
         return
 
-    # 6. Profiling Mode (if requested)
+    # 7. Optimizer, Loss & Scheduler setup
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    loss_fn = nn.CrossEntropyLoss()
+
+    weights_arg = class_weights_tensor.to(device) if args.use_class_weights else None
+    loss_fn = nn.CrossEntropyLoss(weight=weights_arg, label_smoothing=args.label_smoothing)
+
+    if args.lr_scheduler == "cosine":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=args.epochs, eta_min=args.min_lr
+        )
+    else:
+        scheduler = None
 
     if args.profile:
         run_profiling_benchmark(
@@ -612,20 +663,23 @@ def main():
         print("\n[--profile complete] Profiling benchmark finished. Exiting without full training.")
         return
 
-    # 7. Training setup
+    # 8. Training loop
     best_val_loss = float("inf")
     best_epoch = 0
+    best_val_metrics = {}
     history_records = []
 
     print("\n" + "=" * 75)
-    print(f"STARTING VARDHAN-v2A TRAINING ({args.epochs} EPOCHS)")
+    print(f"STARTING CONTROLLED VARDHAN-v2A TRAINING ({args.epochs} EPOCHS)")
     print("=" * 75)
 
     start_train_time = time.time()
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
-        tr_loss, tr_acc, tr_f1 = train_one_epoch(
+        current_lr = optimizer.param_groups[0]["lr"]
+
+        tr_loss, tr_acc, tr_f1, tr_bal = train_one_epoch(
             model=model,
             loader=train_loader,
             optimizer=optimizer,
@@ -633,19 +687,32 @@ def main():
             device=device,
             max_batches=args.max_train_batches,
         )
-        va_loss, va_acc, va_f1, _, _ = evaluate_split(
+
+        va_loss, va_acc, va_f1, va_bal, y_val_true, y_val_pred = evaluate_split(
             model=model,
             loader=val_loader,
             loss_fn=loss_fn,
             device=device,
             max_batches=args.max_val_batches,
         )
-        epoch_time = time.time() - t0
 
+        if scheduler is not None:
+            scheduler.step()
+
+        epoch_time = time.time() - t0
         is_best = va_loss < best_val_loss
+
         if is_best:
             best_val_loss = va_loss
             best_epoch = epoch
+            best_val_metrics = {
+                "val_loss": va_loss,
+                "val_accuracy": va_acc,
+                "val_macro_f1": va_f1,
+                "val_balanced_accuracy": va_bal,
+            }
+
+            # Save best checkpoint
             torch.save({
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
@@ -653,9 +720,19 @@ def main():
                 "val_loss": va_loss,
                 "val_accuracy": va_acc,
                 "val_f1_macro": va_f1,
+                "val_balanced_accuracy": va_bal,
                 "norm_stats": norm_stats,
                 "run_config": run_config,
             }, checkpoints_dir / "best.pt")
+
+            # Save validation confusion matrix for best epoch
+            val_cm = confusion_matrix(y_val_true, y_val_pred, labels=[0, 1, 2, 3])
+            val_cm_df = pd.DataFrame(
+                val_cm,
+                index=[f"True_{LABEL_MAP[i]}" for i in range(4)],
+                columns=[f"Pred_{LABEL_MAP[i]}" for i in range(4)],
+            )
+            val_cm_df.to_csv(output_dir / "val_confusion_matrix.csv")
 
         torch.save({
             "epoch": epoch,
@@ -664,26 +741,30 @@ def main():
             "val_loss": va_loss,
             "val_accuracy": va_acc,
             "val_f1_macro": va_f1,
+            "val_balanced_accuracy": va_bal,
             "norm_stats": norm_stats,
             "run_config": run_config,
         }, checkpoints_dir / "last.pt")
 
         history_records.append({
             "epoch": epoch,
+            "learning_rate": current_lr,
             "train_loss": tr_loss,
             "train_acc": tr_acc,
             "train_f1_macro": tr_f1,
+            "train_balanced_accuracy": tr_bal,
             "val_loss": va_loss,
             "val_acc": va_acc,
             "val_f1_macro": va_f1,
+            "val_balanced_accuracy": va_bal,
             "epoch_time_sec": epoch_time,
             "is_best": is_best,
         })
 
         best_marker = " *" if is_best else ""
-        print(f"  Epoch {epoch:3d}/{args.epochs:3d} | "
-              f"Train Loss: {tr_loss:.4f}, Acc: {tr_acc*100:5.2f}%, F1: {tr_f1:.4f} | "
-              f"Val Loss: {va_loss:.4f}, Acc: {va_acc*100:5.2f}%, F1: {va_f1:.4f} | "
+        print(f"  Epoch {epoch:2d}/{args.epochs:2d} (lr: {current_lr:.6f}) | "
+              f"Tr Loss: {tr_loss:.4f}, Acc: {tr_acc*100:5.2f}%, F1: {tr_f1:.4f} | "
+              f"Val Loss: {va_loss:.4f}, Acc: {va_acc*100:5.2f}%, F1: {va_f1:.4f}, BalAcc: {va_bal*100:5.2f}% | "
               f"Time: {epoch_time:4.1f}s{best_marker}")
 
     total_training_sec = time.time() - start_train_time
@@ -693,12 +774,12 @@ def main():
     # Export history CSV
     pd.DataFrame(history_records).to_csv(output_dir / "history.csv", index=False)
 
-    # 8. Final Test Evaluation using best.pt
+    # 9. Final Test Evaluation using best.pt
     print("\nLoading best checkpoint for Test Split Evaluation...")
     best_ckpt = torch.load(checkpoints_dir / "best.pt", map_location=device)
     model.load_state_dict(best_ckpt["model_state_dict"])
 
-    te_loss, te_acc, te_f1, y_true, y_pred = evaluate_split(
+    te_loss, te_acc, te_f1, te_bal, y_true, y_pred = evaluate_split(
         model=model,
         loader=test_loader,
         loss_fn=loss_fn,
@@ -713,11 +794,17 @@ def main():
         tp = np.sum(mask_true & mask_pred)
         fp = np.sum((~mask_true) & mask_pred)
         fn = np.sum(mask_true & (~mask_pred))
+        support = int(np.sum(mask_true))
 
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1_c = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        per_class[cls_name] = {"precision": float(prec), "recall": float(rec), "f1": float(f1_c)}
+        per_class[cls_name] = {
+            "precision": float(prec),
+            "recall": float(rec),
+            "f1": float(f1_c),
+            "support": support,
+        }
 
     # Confusion matrix
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3])
@@ -727,15 +814,24 @@ def main():
         columns=[f"Pred_{LABEL_MAP[i]}" for i in range(4)],
     )
     cm_df.to_csv(output_dir / "confusion_matrix.csv")
+    cm_df.to_csv(output_dir / "test_confusion_matrix.csv")
 
     metrics_summary = {
         "model_name": "VardhanV2A",
         "total_parameters": 69559,
         "best_epoch": best_epoch,
         "best_val_loss": float(best_val_loss),
+        "best_val_metrics": best_val_metrics,
         "test_loss": float(te_loss),
         "test_accuracy": float(te_acc),
         "test_macro_f1": float(te_f1),
+        "test_balanced_accuracy": float(te_bal),
+        "class_weights": class_weights_dict,
+        "label_smoothing": args.label_smoothing,
+        "weight_decay": args.weight_decay,
+        "lr_scheduler": args.lr_scheduler,
+        "initial_lr": args.lr,
+        "min_lr": args.min_lr,
         "per_class_metrics": per_class,
         "total_training_time_seconds": total_training_sec,
         "confusion_matrix": cm.tolist(),
@@ -744,12 +840,15 @@ def main():
         json.dump(metrics_summary, f, indent=2)
 
     print("=" * 75)
-    print("FINAL TEST EVALUATION SUMMARY")
+    print("FINAL TEST EVALUATION SUMMARY (EXPERIMENT C: REGULARIZED & BALANCED)")
     print("=" * 75)
-    print(f"Test Accuracy: {te_acc*100:.2f}%")
-    print(f"Test Macro-F1: {te_f1:.4f}")
-    print(f"Test Loss:     {te_loss:.4f}")
-    print(f"Artifacts saved to: {output_dir}")
+    print(f"Test Accuracy:          {te_acc*100:.2f}%")
+    print(f"Test Macro-F1:          {te_f1:.4f}")
+    print(f"Test Balanced Accuracy: {te_bal*100:.2f}%")
+    print(f"Test Loss:              {te_loss:.4f}")
+    print(f"\nPer-Class Breakdown:")
+    for cls_name, m in per_class.items():
+        print(f"  - {cls_name:15s}: Prec={m['precision']*100:5.2f}%, Rec={m['recall']*100:5.2f}%, F1={m['f1']:.4f} (Support: {m['support']})")
     print("=" * 75)
 
 
