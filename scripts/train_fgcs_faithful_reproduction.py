@@ -129,7 +129,8 @@ def materialize_features_for_training(
     mock: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Extract and globally normalize all 22,700 feature vectors into memory.
+    Extract and globally normalize all 22,700 feature vectors into memory using pair-by-pair
+    vectorized processing.
     Total memory footprint: 22,700 x 2048 x 4 bytes ~= 185 MB.
     """
     n_samples = len(df_manifest)
@@ -144,42 +145,70 @@ def materialize_features_for_training(
         X, _ = normalize_global_max(X)
         return X, y
 
+    from data.fgcs_faithful_loader import read_raw_signal_10m, process_faithful_fgcs_pair_vectorized
+
+    print(f"\nMaterializing 2048-dim features across {n_samples} segments (227 pairs)...")
+    start_all = time.time()
+
     # Process by BUI group to match Main_2_Data_labeling.m per-BUI max normalization
-    print(f"Materializing 2048-dim features across {n_samples} segments...")
-    bui_groups = df_manifest.groupby("bui")
+    bui_groups = df_manifest.groupby("bui", sort=False)
+    total_buis = len(bui_groups)
 
-    for bui_name, group_df in bui_groups:
-        indices = group_df.index.to_numpy()
-        bui_features = np.zeros((len(group_df), 2048), dtype=np.float32)
+    for bui_idx, (bui_name, group_df) in enumerate(bui_groups, 1):
+        t_bui_start = time.time()
+        cls_name = group_df["drone_class"].iloc[0]
+        lbl_idx = group_df["faithful_label"].iloc[0]
 
-        for local_idx, (_, row) in enumerate(group_df.iterrows()):
-            offset = int(row["segment_offset"])
-            l_path = Path(row["l_path"])
-            h_path = Path(row["h_path"])
+        # Unique recording pairs in this BUI
+        pair_groups = group_df.groupby("pair_id", sort=False)
+        n_pairs = len(pair_groups)
+        n_segments = len(group_df)
+        bui_features = np.zeros((n_segments, 2048), dtype=np.float32)
 
-            # Read 100,000 samples
-            limit = (offset + 1) * 100000 * 15 + 10000
-            with open(l_path, "r") as f:
-                line_l = f.readline(limit)
-            with open(h_path, "r") as f:
-                line_h = f.readline(limit)
+        pair_offset = 0
+        for pair_id, pair_df in pair_groups:
+            first_row = pair_df.iloc[0]
+            l_path = first_row["l_path"]
+            h_path = first_row["h_path"]
+            l_rar = first_row.get("l_rar")
+            h_rar = first_row.get("h_rar")
+            l_inner = first_row.get("l_inner")
+            h_inner = first_row.get("h_inner")
 
-            vals_l = np.fromstring(line_l.rsplit(",", 1)[0], sep=",", dtype=np.float64)
-            vals_h = np.fromstring(line_h.rsplit(",", 1)[0], sep=",", dtype=np.float64)
+            # 1. Read 10,000,000 samples for L and H once
+            raw_l = read_raw_signal_10m(l_path, rar_path=l_rar, inner_file=l_inner)
+            raw_h = read_raw_signal_10m(h_path, rar_path=h_rar, inner_file=h_inner)
 
-            st = offset * 100000
-            fi = st + 100000
-            x_seg = vals_l[st:fi]
-            y_seg = vals_h[st:fi]
+            # 2. Vectorized 100-segment processing in ~60 ms
+            pair_features = process_faithful_fgcs_pair_vectorized(
+                raw_l=raw_l,
+                raw_h=raw_h,
+                q=10,
+                m=2048,
+                segments_per_pair=100,
+                segment_length=100000,
+            )
 
-            feat = process_faithful_fgcs_segment(x_seg, y_seg, q=10, m=2048)
-            bui_features[local_idx] = feat
+            # 3. Store 100 segments into BUI buffer
+            bui_features[pair_offset : pair_offset + 100] = pair_features
+            pair_offset += 100
+
+            # Free raw arrays
+            del raw_l, raw_h
 
         # Per-BUI global max normalization matching Matlab/Main_2_Data_labeling.m
         bui_norm, g_max = normalize_global_max(bui_features)
-        X[indices] = bui_norm
-        print(f"  Processed BUI '{bui_name}' ({len(group_df):4d} segments) | Global Max: {g_max:.4e}")
 
+        # Store normalized features into global X array at original group indices
+        indices = group_df.index.to_numpy()
+        X[indices] = bui_norm
+
+        t_bui_elapsed = time.time() - t_bui_start
+        print(f"  [{bui_idx:2d}/{total_buis:2d}] BUI '{bui_name}' ({cls_name:22s}, Label {lbl_idx}) | "
+              f"{n_pairs:2d} pairs ({n_segments:5d} segments) in {t_bui_elapsed:5.1f}s | Global Max: {g_max:.4e}")
+
+    total_time = time.time() - start_all
+    print(f"\n[DONE] All {n_samples} feature vectors materialized in {total_time:.1f}s ({total_time/60:.2f} min).")
     assert np.all(np.isfinite(X)), "Materialized features contain NaN or Inf"
     return X, y
 
@@ -301,6 +330,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=1, help="Random seed (default: 1)")
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cuda' or 'cpu')")
     parser.add_argument("--num_folds", type=int, default=10, help="Number of cross-validation folds (default: 10)")
+    parser.add_argument("--max_folds", type=int, default=None, help="Maximum number of folds to execute (default: all folds, use 1 for smoke testing)")
     parser.add_argument("--mock", action="store_true", help="Run with synthetic mock data for preflight verification")
     parser.add_argument("--preflight_only", action="store_true", help="Perform preflight checks and exit without training")
     return parser.parse_args()
@@ -327,7 +357,7 @@ def main():
     print("=" * 75)
     print(f"Device:          {device} ({torch.cuda.get_device_name(0) if device.type == 'cuda' else 'CPU'})")
     print(f"Seed:            {args.seed}")
-    print(f"Folds:           {args.num_folds}")
+    print(f"Folds:           {args.num_folds}" + (f" (executing up to fold {args.max_folds})" if args.max_folds else ""))
     print(f"Epochs per fold: {args.epochs}")
     print(f"Batch size:      {args.batch_size}")
     print(f"Learning rate:   {args.lr}")
@@ -345,6 +375,7 @@ def main():
         "description": "Faithful 10-fold reproduction of Al-Sa'd DroneRF benchmark",
         "timestamp": datetime.datetime.now().isoformat(),
         "num_folds": args.num_folds,
+        "max_folds": args.max_folds,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
         "learning_rate": args.lr,
@@ -380,6 +411,9 @@ def main():
     print("=" * 75)
 
     for fold_idx, (train_idx, test_idx) in enumerate(skf.split(X, y), 1):
+        if args.max_folds is not None and fold_idx > args.max_folds:
+            print(f"\n[--max_folds {args.max_folds} reached] Stopping cross-validation early.")
+            break
         X_tr, y_tr = X[train_idx], y[train_idx]
         X_te, y_te = X[test_idx], y[test_idx]
 

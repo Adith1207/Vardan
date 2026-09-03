@@ -121,3 +121,28 @@ def test_dataloader_compatibility_with_diagnostic_segment_splits():
         assert batch_x.shape == expected_shape, f"Model {model_name} produced batch {batch_x.shape}, expected {expected_shape}"
         assert batch_y.shape == (4,)
         assert torch.isfinite(batch_x).all()
+
+
+def test_preflight_checks_both_split_types():
+    """Verify scripts/train_baselines.py run_preflight_checks supports both split types."""
+    from scripts.train_baselines import run_preflight_checks
+
+    # 1. Primary split check
+    passed_prim, stats_prim = run_preflight_checks(
+        DATA_DIR / "splits" / "train.csv",
+        DATA_DIR / "splits" / "val.csv",
+        DATA_DIR / "splits" / "test.csv",
+        mock=True,
+    )
+    assert passed_prim is True
+    assert "mean" in stats_prim
+
+    # 2. Diagnostic segment split check
+    passed_diag, stats_diag = run_preflight_checks(
+        DATA_DIR / "splits" / "diagnostic_segment" / "train.csv",
+        DATA_DIR / "splits" / "diagnostic_segment" / "val.csv",
+        DATA_DIR / "splits" / "diagnostic_segment" / "test.csv",
+        mock=True,
+    )
+    assert passed_diag is True
+    assert "mean" in stats_diag

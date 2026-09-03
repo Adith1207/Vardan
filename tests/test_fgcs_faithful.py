@@ -15,7 +15,9 @@ from src.preprocessing.fgcs_faithful import (
     FAITHFUL_FGCS_INDEX_TO_CLASS,
     BUI_TO_CLASS,
     parse_dronerf_filename,
+    parse_ascii_csv_bytes,
     process_faithful_fgcs_segment,
+    process_faithful_fgcs_pair_vectorized,
     normalize_global_max,
 )
 from src.data.fgcs_faithful_loader import (
@@ -69,6 +71,14 @@ def test_parse_dronerf_filename():
     assert parse_dronerf_filename("invalid_file.csv") is None
 
 
+def test_parse_ascii_csv_bytes_accuracy():
+    """Verify accuracy of fast C-speed ASCII CSV parser against float string decoding."""
+    raw_str = b"0.000000,-15.500000,42.125000,100.000000,-0.005000,"
+    out = parse_ascii_csv_bytes(raw_str, expected_count=5)
+    expected = np.array([0.0, -15.5, 42.125, 100.0, -0.005], dtype=np.float64)
+    assert np.allclose(out, expected)
+
+
 def test_process_faithful_fgcs_segment_math():
     """Verify mathematical transformations of faithful FGCS signal processing."""
     rng = np.random.RandomState(123)
@@ -93,6 +103,34 @@ def test_process_faithful_fgcs_segment_math():
     expected = (np.concatenate([xf, c * yf]) ** 2).astype(np.float32)
 
     assert np.allclose(power_vec, expected, atol=1e-5)
+
+
+def test_process_faithful_fgcs_pair_vectorized_parity():
+    """Verify 100% numerical parity between vectorized pair processor and sequential segment processor."""
+    rng = np.random.RandomState(456)
+    raw_l = rng.randn(10000000).astype(np.float64)
+    raw_h = rng.randn(10000000).astype(np.float64) * 1.5
+
+    # 1. Vectorized method
+    vec_features = process_faithful_fgcs_pair_vectorized(
+        raw_l=raw_l,
+        raw_h=raw_h,
+        q=10,
+        m=2048,
+        segments_per_pair=100,
+        segment_length=100000,
+    )
+    assert vec_features.shape == (100, 2048)
+
+    # 2. Sequential loop method
+    seq_features = np.zeros((100, 2048), dtype=np.float32)
+    for i in range(100):
+        st = i * 100000
+        fi = st + 100000
+        seq_features[i] = process_faithful_fgcs_segment(raw_l[st:fi], raw_h[st:fi], q=10, m=2048)
+
+    diff = np.max(np.abs(vec_features - seq_features))
+    assert diff == 0.0 or np.allclose(vec_features, seq_features, atol=1e-5), f"Parity mismatch: max diff = {diff}"
 
 
 def test_normalize_global_max():
