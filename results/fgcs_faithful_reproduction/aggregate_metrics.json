@@ -1,0 +1,41 @@
+{
+  "experiment": "EXP_FGCS_FAITHFUL",
+  "num_folds": 10,
+  "mean_test_accuracy": 0.8452422907488988,
+  "std_test_accuracy": 0.007253651740228465,
+  "mean_test_f1_macro": 0.789887561732703,
+  "std_test_f1_macro": 0.011149314338249741,
+  "total_test_predictions": 22700,
+  "confusion_matrix": [
+    [
+      4094,
+      3,
+      2,
+      1
+    ],
+    [
+      6,
+      8270,
+      111,
+      13
+    ],
+    [
+      1,
+      1940,
+      6151,
+      8
+    ],
+    [
+      5,
+      1399,
+      24,
+      672
+    ]
+  ],
+  "class_labels": {
+    "0": "Background RF activities",
+    "1": "Bebop drone",
+    "2": "AR drone",
+    "3": "Phantom drone"
+  }
+}
