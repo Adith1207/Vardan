@@ -1,0 +1,49 @@
+{
+  "experiment": "EXP_VARDHAN_V3_STANDARDIZED",
+  "normalization": "per_segment",
+  "class_weighted": false,
+  "num_folds_executed": 10,
+  "total_folds_in_protocol": 10,
+  "mean_test_accuracy": 0.7156828193832598,
+  "std_test_accuracy": 0.012500771386472336,
+  "mean_test_f1_macro": 0.6952844895009611,
+  "std_test_f1_macro": 0.016821545841967465,
+  "mean_test_balanced_accuracy": 0.6766547834129135,
+  "std_test_balanced_accuracy": 0.020329999597096967,
+  "mean_test_loss": 0.7736830366130442,
+  "std_test_loss": 0.023000676893513535,
+  "total_cv_time_seconds": 2265.2049560546875,
+  "total_test_predictions": 22700,
+  "confusion_matrix": [
+    [
+      3410,
+      145,
+      526,
+      19
+    ],
+    [
+      143,
+      6418,
+      1685,
+      154
+    ],
+    [
+      620,
+      1900,
+      5515,
+      65
+    ],
+    [
+      86,
+      696,
+      415,
+      903
+    ]
+  ],
+  "class_labels": {
+    "0": "Background RF activities",
+    "1": "Bebop drone",
+    "2": "AR drone",
+    "3": "Phantom drone"
+  }
+}
