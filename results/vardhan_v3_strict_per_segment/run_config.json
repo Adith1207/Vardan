@@ -1,0 +1,50 @@
+{
+  "experiment_name": "EXP_VARDHAN_V3_STRICT_PER_SEGMENT",
+  "description": "VARDHAN-v3 strict recording-level benchmark using per-segment waveform normalization",
+  "seed": 42,
+  "device": "cuda:0 (Tesla T4)",
+  "epochs": 100,
+  "batch_size": 32,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "label_smoothing": 0.05,
+  "scheduler": "CosineAnnealingLR",
+  "min_lr": 0.000001,
+  "class_weights": false,
+  "normalization": "per_segment",
+  "samples_per_file": 50,
+  "data_caching": true,
+  "model": "VARDHAN-v3",
+  "parameters": 119806,
+  "input_shape": [
+    1,
+    2048
+  ],
+  "spectral_shape": [
+    3,
+    1024
+  ],
+  "temporal_feature_shape": [
+    80
+  ],
+  "spectral_feature_shape": [
+    80
+  ],
+  "output_shape": [
+    4
+  ],
+  "split": {
+    "type": "strict_recording_level",
+    "train_files": 308,
+    "validation_files": 73,
+    "test_files": 73,
+    "train_recordings": 15,
+    "validation_recordings": 4,
+    "test_recordings": 4,
+    "seed": 42,
+    "file_overlap": 0,
+    "recording_overlap": 0
+  },
+  "best_epoch": 1,
+  "best_model_selection": "Minimum validation loss"
+}

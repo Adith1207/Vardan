@@ -1,0 +1,7 @@
+class_name,precision,recall,f1,support
+no_drone,0.6118,0.1450,0.2344,1000
+ar_drone,0.2528,0.1952,0.2203,1050
+bebop_drone,0.2090,0.5152,0.2974,1050
+phantom_drone,1.0000,0.0255,0.0496,550
+macro_avg,0.5184,0.2202,0.2005,3650
+overall_accuracy,0.2479,,,3650

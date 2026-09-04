@@ -1,0 +1,56 @@
+{
+  "experiment_name": "VARDHAN-v3 Strict Recording-Level Benchmark",
+  "model": "VARDHAN-v3",
+  "normalization": "per_segment",
+  "seed": 42,
+  "epochs": 100,
+  "batch_size": 32,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "label_smoothing": 0.05,
+  "scheduler": "CosineAnnealingLR",
+  "min_lr": 0.000001,
+  "class_weights": false,
+  "samples_per_file": 50,
+  "num_parameters": 119806,
+  "split_protocol": "Strict recording-level split",
+  "train_files": 308,
+  "validation_files": 73,
+  "test_files": 73,
+  "train_recordings": 15,
+  "validation_recordings": 4,
+  "test_recordings": 4,
+  "recording_overlap": 0,
+  "file_overlap": 0,
+  "best_epoch": 1,
+  "test_accuracy": 0.2479,
+  "test_macro_f1": 0.2005,
+  "test_balanced_accuracy": 0.2202,
+  "test_loss": 1.4735,
+  "per_class": {
+    "no_drone": {
+      "precision": 0.6118,
+      "recall": 0.1450,
+      "f1": 0.2344,
+      "support": 1000
+    },
+    "ar_drone": {
+      "precision": 0.2528,
+      "recall": 0.1952,
+      "f1": 0.2203,
+      "support": 1050
+    },
+    "bebop_drone": {
+      "precision": 0.2090,
+      "recall": 0.5152,
+      "f1": 0.2974,
+      "support": 1050
+    },
+    "phantom_drone": {
+      "precision": 1.0000,
+      "recall": 0.0255,
+      "f1": 0.0496,
+      "support": 550
+    }
+  }
+}
