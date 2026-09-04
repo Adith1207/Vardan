@@ -42,6 +42,7 @@ from train_vardhan_v3_standardized import (
     set_seed,
     preflight_verification,
     materialize_standardized_waveforms,
+    compute_inverse_frequency_class_weights,
     train_single_fold,
     parse_args,
 )
@@ -78,8 +79,125 @@ def test_runner_imports():
     import train_vardhan_v3_standardized as runner
     assert hasattr(runner, "preflight_verification")
     assert hasattr(runner, "materialize_standardized_waveforms")
+    assert hasattr(runner, "compute_inverse_frequency_class_weights")
     assert hasattr(runner, "train_single_fold")
     assert hasattr(runner, "main")
+
+
+def test_compute_inverse_frequency_class_weights_training_only():
+    """Verify class weights are strictly derived from training labels using N / (4 * count_c)."""
+    # Standardized 10-fold Train Fold 1 distribution (20,430 samples):
+    # Class 0: 3690, Class 1: 7560, Class 2: 7290, Class 3: 1890
+    y_train = np.array(
+        [0] * 3690 + [1] * 7560 + [2] * 7290 + [3] * 1890,
+        dtype=np.int64,
+    )
+    # Mock test set (2,270 samples) - must NEVER affect weights
+    y_test = np.array(
+        [0] * 410 + [1] * 840 + [2] * 810 + [3] * 210,
+        dtype=np.int64,
+    )
+
+    weights, counts = compute_inverse_frequency_class_weights(y_train, num_classes=4)
+
+    # 1. Verify counts derived from y_train only
+    assert counts[0] == 3690
+    assert counts[1] == 7560
+    assert counts[2] == 7290
+    assert counts[3] == 1890
+
+    # 2. Verify all 4 weights are positive and finite
+    assert len(weights) == 4
+    assert np.all(weights > 0.0)
+    assert np.all(np.isfinite(weights))
+
+    # 3. Verify exact mathematical formula values
+    # N_train = 20,430
+    assert weights[0] == pytest.approx(20430.0 / (4.0 * 3690.0), rel=1e-5)
+    assert weights[1] == pytest.approx(20430.0 / (4.0 * 7560.0), rel=1e-5)
+    assert weights[2] == pytest.approx(20430.0 / (4.0 * 7290.0), rel=1e-5)
+    assert weights[3] == pytest.approx(20430.0 / (4.0 * 1890.0), rel=1e-5)
+
+    # Approximate exact numerical values:
+    # Class 0: ~1.384146
+    # Class 1: ~0.675595
+    # Class 2: ~0.700617
+    # Class 3: ~2.702381
+    assert weights[0] == pytest.approx(1.384146, rel=1e-4)
+    assert weights[1] == pytest.approx(0.675595, rel=1e-4)
+    assert weights[2] == pytest.approx(0.700617, rel=1e-4)
+    assert weights[3] == pytest.approx(2.702381, rel=1e-4)
+
+
+def test_class_weighted_loss_execution_and_checkpoint():
+    """Verify class-weighted training executes cleanly and persists weighting metadata."""
+    set_seed(42)
+    device = torch.device("cpu")
+
+    # Imbalanced training subset: 40 Class 0, 80 Class 1, 60 Class 2, 20 Class 3 = 200 samples
+    y_tr = np.array([0] * 40 + [1] * 80 + [2] * 60 + [3] * 20, dtype=np.int64)
+    X_tr = np.random.randn(len(y_tr), 1, 2048).astype(np.float32)
+
+    y_te = np.array([0] * 10 + [1] * 20 + [2] * 15 + [3] * 5, dtype=np.int64)
+    X_te = np.random.randn(len(y_te), 1, 2048).astype(np.float32)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        ckpt_dir = Path(tmp_dir) / "checkpoints"
+
+        # Run with class_weighted=True
+        res_weighted = train_single_fold(
+            fold_idx=1,
+            X_train_raw=X_tr,
+            y_train=y_tr,
+            X_test_raw=X_te,
+            y_test=y_te,
+            device=device,
+            epochs=2,
+            batch_size=16,
+            lr=0.001,
+            weight_decay=0.0001,
+            label_smoothing=0.05,
+            min_lr=1e-6,
+            class_weighted=True,
+            checkpoints_dir=ckpt_dir,
+            verbose=False,
+        )
+
+        assert res_weighted["class_weighted"] is True
+        assert "class_weights" in res_weighted
+        assert res_weighted["class_weights"]["0"] == pytest.approx(200.0 / (4.0 * 40.0))
+        assert res_weighted["class_weights"]["1"] == pytest.approx(200.0 / (4.0 * 80.0))
+        assert res_weighted["class_weights"]["2"] == pytest.approx(200.0 / (4.0 * 60.0))
+        assert res_weighted["class_weights"]["3"] == pytest.approx(200.0 / (4.0 * 20.0))
+
+        # Check saved checkpoint
+        best_ckpt = ckpt_dir / "checkpoint_fold_1.pt"
+        assert best_ckpt.exists()
+        state = torch.load(best_ckpt, map_location="cpu", weights_only=True)
+        assert state["class_weighted"] is True
+        assert state["class_weights"] is not None
+        assert state["train_class_counts"]["0"] == 40
+        assert state["train_class_counts"]["3"] == 20
+
+        # Run with class_weighted=False (unweighted baseline)
+        res_unweighted = train_single_fold(
+            fold_idx=1,
+            X_train_raw=X_tr,
+            y_train=y_tr,
+            X_test_raw=X_te,
+            y_test=y_te,
+            device=device,
+            epochs=2,
+            batch_size=16,
+            lr=0.001,
+            weight_decay=0.0001,
+            label_smoothing=0.05,
+            min_lr=1e-6,
+            class_weighted=False,
+            checkpoints_dir=ckpt_dir,
+            verbose=False,
+        )
+        assert res_unweighted["class_weighted"] is False
 
 
 def test_preflight_verification(synthetic_manifest):
@@ -211,6 +329,12 @@ def test_train_single_fold_and_checkpoint_creation():
 
 def test_cli_argument_parsing(monkeypatch):
     """Verify command line arguments and default flags parse correctly."""
+    # Test default
+    monkeypatch.setattr(sys, "argv", ["train_vardhan_v3_standardized.py"])
+    args_default = parse_args()
+    assert args_default.class_weighted is False
+
+    # Test custom flags
     test_args = [
         "train_vardhan_v3_standardized.py",
         "--epochs", "5",
@@ -219,6 +343,7 @@ def test_cli_argument_parsing(monkeypatch):
         "--min_lr", "1e-5",
         "--weight_decay", "0.0002",
         "--label_smoothing", "0.1",
+        "--class_weighted",
         "--seed", "42",
         "--max_folds", "2",
         "--single_fold", "1",
@@ -234,6 +359,7 @@ def test_cli_argument_parsing(monkeypatch):
     assert args.min_lr == 1e-5
     assert args.weight_decay == 0.0002
     assert args.label_smoothing == 0.1
+    assert args.class_weighted is True
     assert args.seed == 42
     assert args.max_folds == 2
     assert args.single_fold == 1

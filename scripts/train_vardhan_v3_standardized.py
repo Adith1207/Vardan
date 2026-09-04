@@ -232,6 +232,37 @@ def materialize_standardized_waveforms(
     return X, y
 
 
+def compute_inverse_frequency_class_weights(
+    y_train: np.ndarray,
+    num_classes: int = 4,
+) -> Tuple[np.ndarray, Dict[int, int]]:
+    """Compute inverse-frequency balanced class weights strictly from the training labels:
+
+        weight_c = N_train / (num_classes * count_c)
+
+    Args:
+        y_train: 1D array of training labels.
+        num_classes: Number of distinct classes (default: 4).
+
+    Returns:
+        weights: np.ndarray of shape (num_classes,) with float32 weights.
+        class_counts: Dict mapping class index to sample count in y_train.
+    """
+    n_train = len(y_train)
+    class_counts: Dict[int, int] = {}
+    weights = np.zeros(num_classes, dtype=np.float32)
+
+    for c in range(num_classes):
+        cnt = int(np.sum(y_train == c))
+        class_counts[c] = cnt
+        if cnt > 0:
+            weights[c] = float(n_train / (num_classes * cnt))
+        else:
+            weights[c] = 1.0
+
+    return weights, class_counts
+
+
 def train_single_fold(
     fold_idx: int,
     X_train_raw: np.ndarray,
@@ -245,6 +276,7 @@ def train_single_fold(
     weight_decay: float = 0.0001,
     label_smoothing: float = 0.05,
     min_lr: float = 1e-6,
+    class_weighted: bool = False,
     checkpoints_dir: Optional[Path] = None,
     verbose: bool = True,
 ) -> Dict[str, Any]:
@@ -252,7 +284,8 @@ def train_single_fold(
 
     - Fits scalar Z-score normalization strictly on X_train_raw.
     - Applies the same normalization to X_test_raw.
-    - Trains VardhanV3 with AdamW, CosineAnnealingLR, and CrossEntropyLoss(label_smoothing=0.05).
+    - Computes inverse-frequency class weights strictly from y_train (if class_weighted=True).
+    - Trains VardhanV3 with AdamW, CosineAnnealingLR, and CrossEntropyLoss.
     - Saves best checkpoint (based on test-fold loss) and final checkpoint.
     - Returns comprehensive fold metrics and confusion matrix.
     """
@@ -285,6 +318,18 @@ def train_single_fold(
         pin_memory=(device.type == "cuda"),
     )
 
+    # 2. Class weights calculation (TRAINING LABELS ONLY)
+    weights_arr, class_counts = compute_inverse_frequency_class_weights(y_train, num_classes=4)
+
+    if verbose:
+        print(f"\n[Fold {fold_idx:2d} Training Class Distribution & Balancing] (class_weighted={class_weighted}):")
+        for c in range(4):
+            cls_name = FAITHFUL_FGCS_INDEX_TO_CLASS[c]
+            cnt = class_counts[c]
+            wt = weights_arr[c]
+            pct = (cnt / len(y_train)) * 100
+            print(f"   Class {c} ({cls_name:25s}): {cnt:5d} samples ({pct:5.2f}%) | Weight: {wt:.6f}")
+
     model = VardhanV3(num_classes=4).to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -297,7 +342,12 @@ def train_single_fold(
         T_max=epochs,
         eta_min=min_lr,
     )
-    loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+
+    if class_weighted:
+        weights_tensor = torch.tensor(weights_arr, dtype=torch.float32).to(device)
+        loss_fn = nn.CrossEntropyLoss(weight=weights_tensor, label_smoothing=label_smoothing)
+    else:
+        loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
     best_test_loss = float("inf")
     best_epoch = 1
@@ -408,6 +458,9 @@ def train_single_fold(
                     "model_state_dict": best_weights,
                     "norm_mean": mean_tr,
                     "norm_std": std_tr,
+                    "class_weighted": class_weighted,
+                    "class_weights": {str(k): float(weights_arr[k]) for k in range(4)} if class_weighted else None,
+                    "train_class_counts": {str(k): int(class_counts[k]) for k in range(4)},
                     "best_epoch": best_epoch,
                     "test_loss": best_metrics["test_loss"],
                     "test_accuracy": best_metrics["test_accuracy"],
@@ -423,6 +476,9 @@ def train_single_fold(
                 "model_state_dict": model.state_dict(),
                 "norm_mean": mean_tr,
                 "norm_std": std_tr,
+                "class_weighted": class_weighted,
+                "class_weights": {str(k): float(weights_arr[k]) for k in range(4)} if class_weighted else None,
+                "train_class_counts": {str(k): int(class_counts[k]) for k in range(4)},
                 "final_epoch": epochs,
                 "final_test_loss": avg_test_loss,
                 "final_test_accuracy": test_acc,
@@ -439,7 +495,7 @@ def train_single_fold(
         mask_pred = (y_pred_best == idx)
         tp = int(np.sum(mask_true & mask_pred))
         fp = int(np.sum((~mask_true) & mask_pred))
-        fn = int(np.sum(mask_true & (~mask_pred)) )
+        fn = int(np.sum(mask_true & (~mask_pred)))
         supp = int(np.sum(mask_true))
 
         p = tp / (tp + fp) if (tp + fp) > 0 else 0.0
@@ -457,6 +513,9 @@ def train_single_fold(
     return {
         "fold": fold_idx,
         "best_epoch": best_epoch,
+        "class_weighted": class_weighted,
+        "class_weights": {str(k): float(weights_arr[k]) for k in range(4)},
+        "train_class_counts": {str(k): int(class_counts[k]) for k in range(4)},
         "test_loss": float(best_metrics["test_loss"]),
         "test_accuracy": float(best_metrics["test_accuracy"]),
         "test_macro_f1": float(best_metrics["test_macro_f1"]),
@@ -477,6 +536,7 @@ def parse_args():
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Minimum learning rate for CosineAnnealing (default: 1e-6)")
     parser.add_argument("--weight_decay", type=float, default=0.0001, help="Weight decay (default: 0.0001)")
     parser.add_argument("--label_smoothing", type=float, default=0.05, help="Label smoothing epsilon (default: 0.05)")
+    parser.add_argument("--class_weighted", action="store_true", help="Enable inverse-frequency balanced class weighting in CrossEntropyLoss")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for StratifiedKFold (default: 1)")
     parser.add_argument("--num_folds", type=int, default=10, help="Total number of folds (default: 10)")
     parser.add_argument("--max_folds", type=int, default=None, help="Maximum number of folds to run (e.g. 1 for smoke test)")
@@ -517,6 +577,7 @@ def main():
     print(f"Learning Rate:   {args.lr} (min_lr: {args.min_lr})")
     print(f"Weight Decay:    {args.weight_decay}")
     print(f"Label Smoothing: {args.label_smoothing}")
+    print(f"Class Weighted:  {args.class_weighted}")
     print(f"Results Dir:     {output_dir}")
     print(f"Checkpoints Dir: {checkpoints_dir}")
 
@@ -542,9 +603,10 @@ def main():
         "min_learning_rate": args.min_lr,
         "weight_decay": args.weight_decay,
         "label_smoothing": args.label_smoothing,
+        "class_weighted": args.class_weighted,
         "optimizer": "AdamW (betas=(0.9, 0.999))",
         "scheduler": "CosineAnnealingLR",
-        "loss": "CrossEntropyLoss with label smoothing",
+        "loss": f"CrossEntropyLoss (label_smoothing={args.label_smoothing}, class_weighted={args.class_weighted})",
         "device": str(device),
         "device_name": device_name,
         "class_mapping": FAITHFUL_FGCS_CLASS_TO_INDEX,
@@ -596,6 +658,7 @@ def main():
             weight_decay=args.weight_decay,
             label_smoothing=args.label_smoothing,
             min_lr=args.min_lr,
+            class_weighted=args.class_weighted,
             checkpoints_dir=checkpoints_dir,
             verbose=True,
         )
@@ -621,11 +684,16 @@ def main():
         rec = {
             "fold": r["fold"],
             "best_epoch": r["best_epoch"],
+            "class_weighted": r["class_weighted"],
             "test_loss": r["test_loss"],
             "test_accuracy": r["test_accuracy"],
             "test_macro_f1": r["test_macro_f1"],
             "test_balanced_accuracy": r["test_balanced_accuracy"],
         }
+        for c in range(4):
+            rec[f"class_{c}_train_count"] = r["train_class_counts"][str(c)]
+            rec[f"class_{c}_weight"] = r["class_weights"][str(c)]
+
         for cls_name, p_dict in r["per_class"].items():
             slug = cls_name.lower().replace(" ", "_")
             rec[f"{slug}_precision"] = p_dict["precision"]
@@ -653,6 +721,7 @@ def main():
 
     aggregate_summary = {
         "experiment": "EXP_VARDHAN_V3_STANDARDIZED",
+        "class_weighted": args.class_weighted,
         "num_folds_executed": len(fold_results),
         "total_folds_in_protocol": args.num_folds,
         "mean_test_accuracy": float(np.mean(accs)),
@@ -677,6 +746,7 @@ def main():
     print("        STANDARDIZED VARDHAN-v3 BENCHMARK EXECUTION SUMMARY          ")
     print("=" * 75)
     print(f"Folds Completed:            {len(fold_results)} of {args.num_folds}")
+    print(f"Class Weighted:             {args.class_weighted}")
     print(f"Mean Test Accuracy:         {aggregate_summary['mean_test_accuracy']*100:6.2f}% +/- {aggregate_summary['std_test_accuracy']*100:4.2f}%")
     print(f"Mean Macro-F1:              {aggregate_summary['mean_test_f1_macro']:.4f} +/- {aggregate_summary['std_test_f1_macro']:.4f}")
     print(f"Mean Balanced Accuracy:     {aggregate_summary['mean_test_balanced_accuracy']*100:6.2f}% +/- {aggregate_summary['std_test_balanced_accuracy']*100:4.2f}")
