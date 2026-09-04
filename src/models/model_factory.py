@@ -5,6 +5,8 @@ import torch.nn as nn
 from config import NUM_CLASSES
 from .baselines import Baseline1DCNN, CompressiveSensingCNN, DSCNN, FGCS2019DNN, MobileNetV3Small
 from .vardhan import VardhanRFNet
+from .vardhan_v2a import VardhanV2A
+from .vardhan_v3 import VardhanV3
 
 
 def get_model(model_name: str, **kwargs) -> nn.Module:
@@ -47,10 +49,16 @@ def get_model(model_name: str, **kwargs) -> nn.Module:
         seq_length = kwargs.pop("seq_length", 2048)
         return VardhanRFNet(in_channels=in_channels, num_classes=num_classes, seq_length=seq_length)
 
+    elif name in ["vardhan_v2a", "vardhanv2a", "v2a"]:
+        return VardhanV2A(num_classes=num_classes)
+
+    elif name in ["vardhan_v3", "vardhanv3", "v3", "vardhan_v3_net"]:
+        return VardhanV3(num_classes=num_classes)
+
     else:
         raise ValueError(
             f"Unknown model name: '{model_name}'. "
-            f"Supported models: fgcs2019dnn, baseline1dcnn, dscnn, compressed_sensing, mobilenetv3small, vardhan."
+            f"Supported models: fgcs2019dnn, baseline1dcnn, dscnn, compressed_sensing, mobilenetv3small, vardhan, vardhan_v2a, vardhan_v3."
         )
 
 
