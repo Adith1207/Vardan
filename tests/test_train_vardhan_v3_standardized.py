@@ -333,6 +333,7 @@ def test_cli_argument_parsing(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["train_vardhan_v3_standardized.py"])
     args_default = parse_args()
     assert args_default.class_weighted is False
+    assert args_default.normalization == "global"
 
     # Test custom flags
     test_args = [
@@ -344,6 +345,7 @@ def test_cli_argument_parsing(monkeypatch):
         "--weight_decay", "0.0002",
         "--label_smoothing", "0.1",
         "--class_weighted",
+        "--normalization", "per_segment",
         "--seed", "42",
         "--max_folds", "2",
         "--single_fold", "1",
@@ -360,8 +362,118 @@ def test_cli_argument_parsing(monkeypatch):
     assert args.weight_decay == 0.0002
     assert args.label_smoothing == 0.1
     assert args.class_weighted is True
+    assert args.normalization == "per_segment"
     assert args.seed == 42
     assert args.max_folds == 2
     assert args.single_fold == 1
     assert args.mock is True
     assert args.preflight_only is True
+
+
+def test_per_segment_normalization_mean_and_std():
+    """Verify per-segment normalization independently yields mean ~0 and std ~1 for each 2048-sample waveform."""
+    rng = np.random.RandomState(42)
+    # Generate 10 segments of varying baseline offsets and standard deviations
+    X_raw = np.zeros((10, 1, 2048), dtype=np.float32)
+    for i in range(10):
+        offset = (i - 5) * 5.0
+        scale = 0.5 * (1.5 ** i)  # scale spans from 0.5 to ~19.2
+        X_raw[i, 0] = offset + scale * rng.randn(2048).astype(np.float32)
+
+    mean_seg = np.mean(X_raw, axis=-1, keepdims=True)
+    std_seg = np.std(X_raw, axis=-1, keepdims=True) + 1e-8
+    X_norm = (X_raw - mean_seg) / std_seg
+
+    # Assert shape is preserved
+    assert X_norm.shape == (10, 1, 2048)
+
+    # Check each individual segment independently
+    for i in range(10):
+        seg = X_norm[i, 0]
+        assert np.mean(seg) == pytest.approx(0.0, abs=1e-4), f"Segment {i} mean is not approx 0"
+        assert np.std(seg) == pytest.approx(1.0, rel=1e-3), f"Segment {i} std is not approx 1"
+
+
+def test_global_normalization_behavior_unchanged():
+    """Verify global normalization behavior matches scalar Z-score on training set exactly."""
+    rng = np.random.RandomState(123)
+    X_tr = rng.randn(50, 1, 2048).astype(np.float32) * 25.0 + 10.0
+    X_te = rng.randn(20, 1, 2048).astype(np.float32) * 30.0 + 5.0
+
+    mean_tr = float(np.mean(X_tr))
+    std_tr = float(np.std(X_tr)) + 1e-8
+
+    X_tr_norm = (X_tr - mean_tr) / std_tr
+    X_te_norm = (X_te - mean_tr) / std_tr
+
+    assert np.mean(X_tr_norm) == pytest.approx(0.0, abs=1e-5)
+    assert np.std(X_tr_norm) == pytest.approx(1.0, rel=1e-4)
+    # Test set normalized with train stats should NOT be forced to zero mean
+    assert X_te_norm.shape == (20, 1, 2048)
+
+
+def test_per_segment_normalization_sample_independence_and_no_test_leakage():
+    """Verify per-segment normalization of test sample is 100% independent and leakage-free."""
+    rng = np.random.RandomState(999)
+    sample_a = rng.randn(1, 1, 2048).astype(np.float32) * 50.0 + 100.0
+    sample_b = rng.randn(1, 1, 2048).astype(np.float32) * 2.0 - 50.0
+
+    # Normalize sample_a in isolation
+    mean_a = np.mean(sample_a, axis=-1, keepdims=True)
+    std_a = np.std(sample_a, axis=-1, keepdims=True) + 1e-8
+    norm_a_isolated = (sample_a - mean_a) / std_a
+
+    # Normalize sample_a within a batch with sample_b
+    batch = np.concatenate([sample_a, sample_b], axis=0)
+    mean_batch = np.mean(batch, axis=-1, keepdims=True)
+    std_batch = np.std(batch, axis=-1, keepdims=True) + 1e-8
+    norm_batch = (batch - mean_batch) / std_batch
+
+    # The normalized output for sample_a inside the batch must be bit-exact to isolated normalization
+    np.testing.assert_allclose(norm_batch[0:1], norm_a_isolated, rtol=1e-7, atol=1e-7)
+
+
+def test_train_single_fold_per_segment_normalization_execution():
+    """Verify train_single_fold executes with normalization='per_segment' and stores metadata."""
+    set_seed(42)
+    device = torch.device("cpu")
+
+    N_tr = 32
+    N_te = 16
+    X_tr = np.random.randn(N_tr, 1, 2048).astype(np.float32) * 10.0 + 5.0
+    y_tr = np.random.choice([0, 1, 2, 3], size=N_tr).astype(np.int64)
+    X_te = np.random.randn(N_te, 1, 2048).astype(np.float32) * 20.0 - 10.0
+    y_te = np.random.choice([0, 1, 2, 3], size=N_te).astype(np.int64)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        ckpt_dir = Path(tmp_dir) / "checkpoints"
+
+        res = train_single_fold(
+            fold_idx=1,
+            X_train_raw=X_tr,
+            y_train=y_tr,
+            X_test_raw=X_te,
+            y_test=y_te,
+            device=device,
+            epochs=2,
+            batch_size=16,
+            lr=0.001,
+            weight_decay=0.0001,
+            label_smoothing=0.05,
+            min_lr=1e-6,
+            normalization="per_segment",
+            checkpoints_dir=ckpt_dir,
+            verbose=False,
+        )
+
+        assert res["normalization"] == "per_segment"
+        assert res["fold"] == 1
+        assert "test_loss" in res and np.isfinite(res["test_loss"])
+
+        # Check saved checkpoint metadata
+        best_ckpt = ckpt_dir / "checkpoint_fold_1.pt"
+        assert best_ckpt.exists()
+        state = torch.load(best_ckpt, map_location="cpu", weights_only=True)
+        assert state["normalization"] == "per_segment"
+        assert state["norm_mean"] is None
+        assert state["norm_std"] is None

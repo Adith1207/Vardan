@@ -277,24 +277,41 @@ def train_single_fold(
     label_smoothing: float = 0.05,
     min_lr: float = 1e-6,
     class_weighted: bool = False,
+    normalization: str = "global",
     checkpoints_dir: Optional[Path] = None,
     verbose: bool = True,
 ) -> Dict[str, Any]:
     """Train and evaluate a single fold of the standardized VARDHAN-v3 benchmark.
 
-    - Fits scalar Z-score normalization strictly on X_train_raw.
-    - Applies the same normalization to X_test_raw.
+    - Applies waveform normalization:
+        - 'global': Fits scalar Z-score normalization strictly on X_train_raw, applies to X_test_raw.
+        - 'per_segment': Normalizes each 2048-sample waveform independently to zero-mean unit-variance.
     - Computes inverse-frequency class weights strictly from y_train (if class_weighted=True).
     - Trains VardhanV3 with AdamW, CosineAnnealingLR, and CrossEntropyLoss.
     - Saves best checkpoint (based on test-fold loss) and final checkpoint.
     - Returns comprehensive fold metrics and confusion matrix.
     """
-    # 1. Compute fold-train-only normalization statistics
-    mean_tr = float(np.mean(X_train_raw))
-    std_tr = float(np.std(X_train_raw)) + 1e-8
+    # 1. Compute normalization
+    if normalization == "global":
+        mean_tr = float(np.mean(X_train_raw))
+        std_tr = float(np.std(X_train_raw)) + 1e-8
+        X_train_norm = (X_train_raw - mean_tr) / std_tr
+        X_test_norm = (X_test_raw - mean_tr) / std_tr
+    elif normalization == "per_segment":
+        mean_seg_tr = np.mean(X_train_raw, axis=-1, keepdims=True)
+        std_seg_tr = np.std(X_train_raw, axis=-1, keepdims=True) + 1e-8
+        X_train_norm = (X_train_raw - mean_seg_tr) / std_seg_tr
 
-    X_train_norm = (X_train_raw - mean_tr) / std_tr
-    X_test_norm = (X_test_raw - mean_tr) / std_tr
+        mean_seg_te = np.mean(X_test_raw, axis=-1, keepdims=True)
+        std_seg_te = np.std(X_test_raw, axis=-1, keepdims=True) + 1e-8
+        X_test_norm = (X_test_raw - mean_seg_te) / std_seg_te
+
+        mean_tr = None
+        std_tr = None
+    else:
+        raise ValueError(
+            f"Unknown normalization strategy: '{normalization}'. Must be 'global' or 'per_segment'."
+        )
 
     train_ds = TensorDataset(
         torch.tensor(X_train_norm, dtype=torch.float32),
@@ -322,7 +339,7 @@ def train_single_fold(
     weights_arr, class_counts = compute_inverse_frequency_class_weights(y_train, num_classes=4)
 
     if verbose:
-        print(f"\n[Fold {fold_idx:2d} Training Class Distribution & Balancing] (class_weighted={class_weighted}):")
+        print(f"\n[Fold {fold_idx:2d} Training Class Distribution & Balancing] (class_weighted={class_weighted}, normalization={normalization}):")
         for c in range(4):
             cls_name = FAITHFUL_FGCS_INDEX_TO_CLASS[c]
             cnt = class_counts[c]
@@ -456,6 +473,7 @@ def train_single_fold(
                 {
                     "fold": fold_idx,
                     "model_state_dict": best_weights,
+                    "normalization": normalization,
                     "norm_mean": mean_tr,
                     "norm_std": std_tr,
                     "class_weighted": class_weighted,
@@ -474,6 +492,7 @@ def train_single_fold(
             {
                 "fold": fold_idx,
                 "model_state_dict": model.state_dict(),
+                "normalization": normalization,
                 "norm_mean": mean_tr,
                 "norm_std": std_tr,
                 "class_weighted": class_weighted,
@@ -513,6 +532,7 @@ def train_single_fold(
     return {
         "fold": fold_idx,
         "best_epoch": best_epoch,
+        "normalization": normalization,
         "class_weighted": class_weighted,
         "class_weights": {str(k): float(weights_arr[k]) for k in range(4)},
         "train_class_counts": {str(k): int(class_counts[k]) for k in range(4)},
@@ -537,6 +557,13 @@ def parse_args():
     parser.add_argument("--weight_decay", type=float, default=0.0001, help="Weight decay (default: 0.0001)")
     parser.add_argument("--label_smoothing", type=float, default=0.05, help="Label smoothing epsilon (default: 0.05)")
     parser.add_argument("--class_weighted", action="store_true", help="Enable inverse-frequency balanced class weighting in CrossEntropyLoss")
+    parser.add_argument(
+        "--normalization",
+        type=str,
+        choices=["global", "per_segment"],
+        default="global",
+        help="Waveform normalization strategy: 'global' (fold-train scalar Z-score) or 'per_segment' (independent per-segment zero-mean unit-variance, default: 'global')",
+    )
     parser.add_argument("--seed", type=int, default=1, help="Random seed for StratifiedKFold (default: 1)")
     parser.add_argument("--num_folds", type=int, default=10, help="Total number of folds (default: 10)")
     parser.add_argument("--max_folds", type=int, default=None, help="Maximum number of folds to run (e.g. 1 for smoke test)")
@@ -578,6 +605,7 @@ def main():
     print(f"Weight Decay:    {args.weight_decay}")
     print(f"Label Smoothing: {args.label_smoothing}")
     print(f"Class Weighted:  {args.class_weighted}")
+    print(f"Normalization:   {args.normalization}")
     print(f"Results Dir:     {output_dir}")
     print(f"Checkpoints Dir: {checkpoints_dir}")
 
@@ -604,6 +632,7 @@ def main():
         "weight_decay": args.weight_decay,
         "label_smoothing": args.label_smoothing,
         "class_weighted": args.class_weighted,
+        "normalization": args.normalization,
         "optimizer": "AdamW (betas=(0.9, 0.999))",
         "scheduler": "CosineAnnealingLR",
         "loss": f"CrossEntropyLoss (label_smoothing={args.label_smoothing}, class_weighted={args.class_weighted})",
@@ -659,6 +688,7 @@ def main():
             label_smoothing=args.label_smoothing,
             min_lr=args.min_lr,
             class_weighted=args.class_weighted,
+            normalization=args.normalization,
             checkpoints_dir=checkpoints_dir,
             verbose=True,
         )
@@ -684,6 +714,7 @@ def main():
         rec = {
             "fold": r["fold"],
             "best_epoch": r["best_epoch"],
+            "normalization": r["normalization"],
             "class_weighted": r["class_weighted"],
             "test_loss": r["test_loss"],
             "test_accuracy": r["test_accuracy"],
@@ -721,6 +752,7 @@ def main():
 
     aggregate_summary = {
         "experiment": "EXP_VARDHAN_V3_STANDARDIZED",
+        "normalization": args.normalization,
         "class_weighted": args.class_weighted,
         "num_folds_executed": len(fold_results),
         "total_folds_in_protocol": args.num_folds,
@@ -746,6 +778,7 @@ def main():
     print("        STANDARDIZED VARDHAN-v3 BENCHMARK EXECUTION SUMMARY          ")
     print("=" * 75)
     print(f"Folds Completed:            {len(fold_results)} of {args.num_folds}")
+    print(f"Normalization:              {args.normalization}")
     print(f"Class Weighted:             {args.class_weighted}")
     print(f"Mean Test Accuracy:         {aggregate_summary['mean_test_accuracy']*100:6.2f}% +/- {aggregate_summary['std_test_accuracy']*100:4.2f}%")
     print(f"Mean Macro-F1:              {aggregate_summary['mean_test_f1_macro']:.4f} +/- {aggregate_summary['std_test_f1_macro']:.4f}")
