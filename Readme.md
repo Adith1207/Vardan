@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛰️ Portable Indigenous Multi-Modal Counter-UAS System (Vardan)
+# 🛰️ Portable Indigenous Counter-UAS System (Vardan)
 
 ### AI-Powered Lightweight Multi-Sensor Drone Detection Framework for Edge Devices
 
