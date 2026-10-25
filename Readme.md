@@ -1,214 +1,220 @@
 <div align="center">
 
-# 🛰️ Portable Indigenous Counter-UAS System (Vardan)
-
-### AI-Powered Lightweight Multi-Sensor Drone Detection Framework for Edge Devices
+# Vardan: Lightweight RF-Based Drone Detection and Identification
 
 ![Status](https://img.shields.io/badge/Status-Research%20In%20Progress-orange?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-red?style=for-the-badge&logo=pytorch)
-![TinyML](https://img.shields.io/badge/TinyML-Edge%20AI-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
----
-
-### 🎓 Final Year B.Tech Research Project
-
-**Department of Computer Science & Engineering**  
-**Amrita Vishwa Vidyapeetham**
-
-*"Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence."*
+**Final Year B.Tech Research Project**
+Department of Computer Science & Engineering, Amrita Vishwa Vidyapeetham
 
 </div>
 
 ---
 
-## 📖 Project Overview
+## Overview
 
-The rapid increase in the use of **Unmanned Aerial Vehicles (UAVs)** has introduced security threats through unauthorized drone operations. This project develops **Vardan**, a lightweight, portable, multi-modal counter-UAS framework. By fusing inputs from **Radio Frequency (RF)**, **Acoustic waveforms**, and **Computer Vision feeds**, Vardan increases detection robustness under noise while remaining computationally optimized for microcontroller and embedded-device deployment.
+Vardan studies passive **radio-frequency (RF)** detection and identification of commercial drones on the public **DroneRF** dataset. The project:
 
-### System Architecture Diagram
-```text
-                    Portable Counter-UAS System
-                  ┌───────────────────────────────┐
-                  │      Incoming Drone           │
-                  └──────────────┬────────────────┘
-                                 │
-         ┌───────────────────────┼────────────────────────┐
-         │                       │                        │
-         ▼                       ▼                        ▼
-    RF Detection            Acoustic Detection      Vision Detection
-         │                       │                        │
-         └───────────────────────┼────────────────────────┘
-                                 │
-                                 ▼
-                    Adaptive Sensor Fusion Engine
-                                 │
-                                 ▼
-                    Drone / No Drone Classification
-                                 │
-                                 ▼
-                        Threat Level & Alert System
-```
+1. faithfully reproduces published RF deep-learning baselines,
+2. evaluates them under two protocols — the standard segment-level 10-fold cross-validation and a strict recording-level split with zero session overlap, and
+3. proposes **VARDHAN-v3**, a lightweight (119,806-parameter) dual-domain network that jointly processes the raw time-domain waveform and a three-channel Fourier representation of each 2048-sample RF segment.
+
+The scope of this repository is **RF only**. Acoustic, vision, and multi-sensor fusion work that was originally planned has been removed.
 
 ---
 
-## 🎯 Research Goals
+## Dataset
 
-1. **Robust RF Signature Classification**: Detect drone signals and identify flight modes under varying Signal-to-Noise Ratios (SNRs).
-2. **Acoustic Signature Detection**: Implement lightweight, audio-spectrogram classifiers to detect drone rotors in the acoustic near-field.
-3. **Optimized Computer Vision**: Deploy highly optimized, low-latency object classifiers/detectors for visual identification.
-4. **Adaptive Late Fusion**: Fuse probabilities dynamically using entropy-based confidence weighting to manage sensor degradation.
-5. **Edge & TinyML Benchmarking**: Benchmark latency, parameter sizes, RAM, and Flash memory consumption to target ARM Cortex microcontrollers.
+| Property | Value |
+|---|---|
+| Source | DroneRF (Al-Sa'd et al., 2019; Allahham et al., 2019), Mendeley Data |
+| Receivers | 2 × NI USRP-2943R, lower band 2.40–2.44 GHz (L) and upper band 2.44–2.48 GHz (H) |
+| Sampling rate | 100 MS/s |
+| Files | 454 CSV files (227 synchronised L/H pairs), 10,000,000 samples each |
+| Classes | Background RF, Parrot Bebop, Parrot AR Drone 2.0, DJI Phantom 3 |
+| Segments | 22,700 (100 per pair), 2048 samples = 20.48 µs each |
+
+The dataset is **not** included. Download it from the official source and extract it into `data/raw/DroneRF/` as described in [data/README.md](data/README.md).
 
 ---
 
-## 📂 Repository Structure
+## Models
 
-The project directory tree is organized for research scale and reproducibility:
+| Model | Input | Parameters | Source |
+|---|---|---:|---|
+| FGCS2019DNN (code mode) | 2048-bin stitched L+H power spectrum | 295,812 | `src/models/fgcs_faithful_dnn.py` |
+| MC1DCNN / Baseline1DCNN | 8 × 256 sub-band spectrum | 275,940 | `src/models/baselines.py` |
+| DSCNN | (1, 2048) waveform | 68,228 | `src/models/baselines.py` |
+| Compressive-Sensing CNN | (1, 1024) compressed measurements | 1,059,908 | `src/models/baselines.py` |
+| MobileNetV3Small-style | (1, 65, 61) STFT log-spectrogram | 11,588 | `src/models/baselines.py` |
+| VARDHAN-v1 | (1, 2048) waveform | 6,692 | `src/models/vardhan.py` |
+| VARDHAN-v2A | (1, 2048) waveform, tri-branch | 69,559 | `src/models/vardhan_v2a.py` |
+| **VARDHAN-v3** | (1, 2048) waveform + internal (3, 1024) spectrum | **119,806** | `src/models/vardhan_v3.py` |
+
+**VARDHAN-v3** combines:
+- a multi-scale temporal backbone (parallel depthwise kernels 3/7/15/31, dilations 1–8, squeeze-and-excitation, residuals),
+- a multi-scale spectral backbone on `[log power, Re, Im]` of the 2048-point rFFT (DC bin removed),
+- learnable attention pooling on both branches, and
+- bi-directional cross-domain gating between the temporal and spectral embeddings of the same RF segment.
+
+---
+
+## Evaluation Protocols
+
+| Protocol | Description |
+|---|---|
+| **Segment-level 10-fold CV** | `StratifiedKFold(n_splits=10, shuffle=True, random_state=1)` over all 22,700 segments. Matches the literature, but segments from the same recording appear in both train and test folds. |
+| **Strict recording-level split** | 23 recording sessions assigned exclusively to train (15 sessions, 308 files), validation (4, 73) or test (4, 73). Zero recording and file overlap. Split files: `data/splits/{train,val,test}.csv`. |
+
+Segment-level accuracy measures within-session interpolation; it does **not** measure generalisation to unseen recordings.
+
+---
+
+## Results
+
+### Segment-level 10-fold cross-validation (22,700 segments)
+
+| Model | Accuracy | Macro-F1 | Result files |
+|---|---:|---:|---|
+| FGCS2019DNN | 84.52% ± 0.73% | 0.7899 ± 0.0111 | `results/fgcs_faithful_reproduction/` |
+| MC1DCNN | 65.01% ± 5.35% | 0.6207 ± 0.0533 | `results/baseline1dcnn_faithful_reproduction/` |
+| VARDHAN-v3 | 71.57% ± 1.25% | 0.6953 ± 0.0168 | `results/vardhan_v3_per_segment_10fold/` |
+
+VARDHAN-v3 balanced accuracy: 67.67% ± 2.03%.
+
+### Strict recording-level split (VARDHAN-v3, 50 segments/file, 3,650 test segments)
+
+| Metric | Value |
+|---|---:|
+| Accuracy | 24.79% |
+| Macro-F1 | 0.2005 |
+| Balanced accuracy | 22.02% |
+
+Source: `results/vardhan_v3_strict_per_segment/`. Earlier strict runs of the baselines (5 segments/file) are reported in `reports/VARDHAN_IEEE_Report.md`; they collapse to near the 25% chance level.
+
+**Key finding:** every model loses 36–56 percentage points when evaluated on unseen recording sessions. In the strict split, DJI Phantom training files come only from the H band and test files only from the L band, which contributes to the near-zero Phantom recall.
+
+---
+
+## Limitations
+
+- Single-site dataset; cross-location and cross-hardware transfer are untested.
+- Closed-set, four-class evaluation; unknown-drone rejection is untested.
+- The full 10-fold benchmark was run only for FGCS2019DNN, MC1DCNN and VARDHAN-v3.
+- No physical edge-device deployment has been performed. Parameter counts, MACs/FLOPs and latencies are software measurements on a development machine only; power, quantisation and embedded latency are unmeasured.
+
+See `reports/VARDHAN_EVIDENCE_GAPS.md` for the complete list.
+
+---
+
+## Repository Structure
 
 ```text
 Vardan/
-├── pyproject.toml              # Build system, tool configurations, and metadata
-├── requirements.txt            # Python dependencies (PyTorch, Librosa, etc.)
-├── environment.yml             # Conda environment definition
-├── LICENSE                     # MIT License
-├── configs/                    # Hyperparameters and options (No hardcoding)
-│   ├── dataset.yaml            # Dataset details, sampling rates, splits
-│   ├── preprocessing.yaml      # Signal windows, FFT size, wavelets
-│   ├── training.yaml           # Learning rates, scheduler, epochs
-│   ├── evaluation.yaml         # Decision thresholds, TinyML constraints
-│   └── logging.yaml            # Rotating log configurations, ML tracking
-├── data/                       # Data separation (Raw data is read-only)
-│   ├── raw/DroneRF/            # Landing directory for official raw data
-│   ├── interim/                # Temporary files during preprocessing
-│   └── processed/              # Split/transformed datasets (FFT, spectrograms)
-├── notebooks/                  # Single-responsibility research notebooks
-│   ├── 01_DroneRF_Dataset_Exploration.ipynb
-│   ├── 02_RF_Signal_Processing.ipynb
-│   ├── 03_Baseline_Model_Reproduction.ipynb
-│   ├── 04_Benchmarking.ipynb
-│   ├── 05_Vardhan_RF_Module.ipynb
-│   ├── 06_Acoustic_Module.ipynb
-│   ├── 07_Vision_Module.ipynb
-│   ├── 08_Multimodal_Fusion.ipynb
-│   └── 09_Experiments.ipynb
-├── src/                        # Modular python package
-│   ├── data/                   # Data loader helpers
-│   ├── preprocessing/          # Signal transforms (STFT, wavelets)
-│   ├── features/               # Descriptive feature extraction
-│   ├── visualization/          # Spectrogram and signal plotters
-│   ├── models/                 # Baselines and VardhanRFNet architecture
-│   ├── evaluation/             # Metrics calculation (Precision, Recall, F1)
-│   ├── benchmark/              # Latency & memory profiling utilities
-│   ├── fusion/                 # Adaptive late-fusion algorithms
-│   └── utils/                  # Paths resolver and helpers (set_seed)
-├── models/                     # Weights storage directory
-│   ├── baselines/              # Trained weights for baseline models
-│   ├── vardhan/                # Trained weights for Vardan models
-│   └── checkpoints/            # Epoch-wise train checkpoints
-├── experiments/                # Running tracking logs and results
-│   ├── configs/                # Saved configs of individual runs
-│   ├── logs/                   # System outputs / training logs
-│   ├── runs/                   # Local logs / TensorBoard outputs
-│   └── reports/                # Experiment summaries
-├── results/                    # Research output exports (LaTeX/JSON)
-│   ├── tables/                 # Text/LaTeX formatted results tables
-│   ├── plots/                  # Static evaluation graphs
-│   ├── metrics/                # Raw accuracy scores in JSON
-│   └── confusion_matrices/     # Confusion matrix arrays in CSV/JSON
-└── reports/                    # Literature notes and paper draft assets
+├── configs/          # dataset, preprocessing, training, evaluation, logging YAML
+├── data/             # raw/ (not tracked), interim/, processed/, metadata/, splits/
+├── docs/             # protocol and reproduction notes
+├── notebooks/        # 01–05 RF analysis notebooks, 09 planned robustness experiments
+├── reports/          # IEEE report, audits, evidence gaps, bibliography
+├── results/          # metrics, fold tables, confusion matrices, run configs
+├── scripts/          # training, verification and analysis entry points
+├── src/
+│   ├── data/          # lazy datasets, faithful loader, split generation
+│   ├── preprocessing/ # raw loading, FFT, STFT, channelisation, normalisation, compressive sensing
+│   ├── models/        # baselines, VARDHAN-v1/v2A/v3, trainer, model factory
+│   ├── evaluation/    # metrics and confusion matrices
+│   ├── benchmark/     # software latency and parameter profiling
+│   ├── visualization/ # plotting utilities
+│   └── utils/         # paths and helpers
+├── tests/            # pytest suite
+└── website/          # static project website
 ```
 
 ---
 
-## ⚙️ Installation
+## Installation
 
-We support package management through `conda` or standard `pip`. 
-
-### Method 1: Conda (Recommended for cross-platform stability)
 ```bash
+git clone https://github.com/Adith1207/Vardan.git
+cd Vardan
+
+# Conda
 conda env create -f environment.yml
 conda activate vardan
-```
 
-### Method 2: Pip
-```bash
-python -m venv venv
-# On Windows
-venv\Scripts\activate
-# On macOS/Linux
-source venv/bin/activate
-
+# or pip
 pip install -r requirements.txt
 ```
 
 ---
 
-## 📡 Dataset Configuration
+## Usage
 
-> [!IMPORTANT]
-> **The DroneRF dataset is NOT included in this repository due to licensing restrictions and file size limits.**
-> Users should download the raw data separately from the official source and extract the files into the `data/raw/DroneRF` folder.
+```bash
+# Segment-level 10-fold benchmark
+python scripts/train_fgcs_faithful_reproduction.py --raw_data_dir data/raw/DroneRF
+python scripts/train_baseline1dcnn_faithful_reproduction.py --raw_data_dir data/raw/DroneRF
+python scripts/train_vardhan_v3_standardized.py --normalization per_segment --epochs 15 --raw_data_dir data/raw/DroneRF
 
-Follow the guidelines inside [data/README.md](file:///c:/Users/subsa/Desktop/DRONE/Vardan/data/README.md) to set up raw signals correctly. Path loading must utilize [src/utils/paths.py](file:///c:/Users/subsa/Desktop/DRONE/Vardan/src/utils/paths.py) to resolve locations dynamically.
+# Strict recording-level benchmark
+python scripts/train_vardhan_v3.py --normalization per_segment --epochs 100 --samples_per_file 50 --splits_dir data/splits --raw_data_dir data/raw/DroneRF
 
----
+# Split and band-shift diagnostics
+python scripts/analyze_data_distribution.py --splits_dir data/splits --raw_data_dir data/raw/DroneRF
 
-## 🔄 Research Workflow
+# Any training script can run on synthetic data without the dataset
+python scripts/train_vardhan_v3.py --mock --epochs 1
 
-To replicate research results:
-1. Parse raw signals and explore data configurations using [01_DroneRF_Dataset_Exploration.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/01_DroneRF_Dataset_Exploration.ipynb).
-2. Experiment with wavelets and STFT in [02_RF_Signal_Processing.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/02_RF_Signal_Processing.ipynb).
-3. Replicate baseline results using [03_Baseline_Model_Reproduction.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/03_Baseline_Model_Reproduction.ipynb).
-4. Run edge latency benchmarking with [04_Benchmarking.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/04_Benchmarking.ipynb).
-5. Compare performance of the proposed Vardan model in [05_Vardhan_RF_Module.ipynb](file:///c:/Users/subsa/Desktop/DRONE/Vardan/notebooks/05_Vardhan_RF_Module.ipynb).
+# Tests
+python -m pytest tests/
+```
 
-Ensure reproducible seeds are set via `set_seed` in [src/utils/helpers.py](file:///c:/Users/subsa/Desktop/DRONE/Vardan/src/utils/helpers.py).
+### Software profiling
 
----
+```python
+import sys; sys.path.insert(0, "src")
+from models.vardhan_v3 import VardhanV3
+from benchmark.bench import profile_model_footprint, benchmark_inference_latency
 
-## 📅 Milestones & Progress
+model = VardhanV3()
+print(profile_model_footprint(model))                       # 119,806 parameters, ~0.46 MB FP32
+print(benchmark_inference_latency(model, (1, 2048), device="cpu"))
+```
 
-| Phase | Description | Status |
-|--------|-------------|--------|
-| Phase 1 | Repository Scaffolding & Path Resolution | 🟢 Completed |
-| Phase 2 | RF Signal Preprocessing & Baselines | 🟡 In Progress |
-| Phase 3 | Acoustic Signal Classifier | ⏳ Planned |
-| Phase 4 | Vision Object Detector | ⏳ Planned |
-| Phase 5 | Adaptive Multimodal Sensor Fusion | ⏳ Planned |
-| Phase 6 | Edge TinyML Optimization & Deployment | ⏳ Planned |
-
----
-
-## 👨‍💻 Research Team
-
-* **Department of Computer Science & Engineering, Amrita Vishwa Vidyapeetham**
-* **Team 53**:
-  - Adith Narayan G
-  - S J Yuvan Dhurkesh
-  - Subash Santhanam K
-  - Sisthick S
-* **Project Guide**:
-  - Mr. Sumesh A K (Assistant Professor)
+Latency figures from this utility describe the machine they are run on; they are not embedded-hardware measurements.
 
 ---
 
-## 📑 Citation Placeholder
+## Research Team
 
-When publishing or referencing this project, please cite:
+Team 53, Department of Computer Science & Engineering, Amrita Vishwa Vidyapeetham
+
+- Adith Narayan G
+- S J Yuvan Dhurkesh
+- Subash Santhanam K
+- Sisthick S
+
+Project guide: Mr. Sumesh A K (Assistant Professor)
+
+---
+
+## Citation
 
 ```bibtex
-@article{vardan2026multimodal,
-  title={Towards an Indigenous, Portable and Energy-Efficient Counter-UAS Detection System using Adaptive Multi-Modal Artificial Intelligence},
-  author={Adith Narayan, G. and Yuvan Dhurkesh, S. J. and Subash Santhanam, K. and Sisthick, S. and Sumesh, A. K.},
-  journal={arXiv preprint (Submission in Progress)},
-  year={2026}
+@misc{vardan2026rf,
+  title  = {Vardan: Lightweight RF-Based Drone Detection and Identification},
+  author = {Adith Narayan, G. and Yuvan Dhurkesh, S. J. and Subash Santhanam, K. and Sisthick, S. and Sumesh, A. K.},
+  note   = {Final Year B.Tech Project, Amrita Vishwa Vidyapeetham},
+  year   = {2026},
+  url    = {https://github.com/Adith1207/Vardan}
 }
 ```
 
 ---
 
-## 📜 License
+## License
 
-This repository is released under the **MIT License**. See [LICENSE](file:///c:/Users/subsa/Desktop/DRONE/Vardan/LICENSE) for details.
+Released under the MIT License. See [LICENSE](LICENSE).
