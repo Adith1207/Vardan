@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Results – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html" aria-current="page">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Results</h1>
+      <p>All numbers on this page are taken directly from the result files in <code>results/</code> (<code>aggregate_metrics.json</code>, <code>fold_metrics.csv</code>, <code>confusion_matrix.csv</code> and <code>test_metrics.csv</code>). Per-class metrics for the 10-fold benchmark are computed from the confusion matrices pooled over all 22,700 test predictions. Values that appear only in project reports are marked &ldquo;as reported&rdquo;.</p>
+
+      <div class="toc">
+        <strong>On this page</strong>
+        <ol>
+          <li><a href="#tenfold">10-fold segment-level benchmark</a></li>
+          <li><a href="#perfold">Per-fold results</a></li>
+          <li><a href="#confusion">Confusion matrices and per-class metrics</a></li>
+          <li><a href="#strict">Strict recording-level benchmark</a></li>
+          <li><a href="#gap">Generalisation gap</a></li>
+          <li><a href="#normalisation">Normalisation ablation</a></li>
+        </ol>
+      </div>
+
+      <h2 id="tenfold">1. 10-Fold Segment-Level Benchmark</h2>
+      <table>
+        <caption>Table 1. Mean &plusmn; standard deviation over 10 stratified folds (22,700 segments).</caption>
+        <thead>
+          <tr><th>Model</th><th class="num">Parameters</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Balanced accuracy</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FGCS2019DNN (code mode)</td><td class="num">295,812</td><td class="num"><strong>84.52% &plusmn; 0.73%</strong></td><td class="num"><strong>0.7899 &plusmn; 0.0111</strong></td><td class="num">76.56%*</td><td><code>results/fgcs_faithful_reproduction/</code></td></tr>
+          <tr><td>MC1DCNN</td><td class="num">275,940</td><td class="num">65.01% &plusmn; 5.35%</td><td class="num">0.6207 &plusmn; 0.0533</td><td class="num">62.95%*</td><td><code>results/baseline1dcnn_faithful_reproduction/</code></td></tr>
+          <tr><td>VARDHAN-v3</td><td class="num">119,806</td><td class="num">71.57% &plusmn; 1.25%</td><td class="num">0.6953 &plusmn; 0.0168</td><td class="num">67.67% &plusmn; 2.03%</td><td><code>results/vardhan_v3_per_segment_10fold/</code></td></tr>
+        </tbody>
+      </table>
+      <p class="muted">* Mean of per-fold macro recall, which equals balanced accuracy; the baseline scripts did not log balanced accuracy directly.</p>
+      <p>The faithful FGCS2019DNN reproduction matches the 84.5% reported in the original paper, validating the reproduced pipeline. VARDHAN-v3 outperforms MC1DCNN by 6.6 percentage points with less than half the parameters and much lower fold-to-fold variance (&plusmn;1.25% vs &plusmn;5.35%), but remains 13 points below FGCS2019DNN under this protocol. FGCS2019DNN uses the stitched L+H spectrum covering the full 80 MHz, whereas VARDHAN-v3 sees a 2048-sample slice from a single 40 MHz receiver.</p>
+      <figure>
+        <img src="../assets/figures/report/standardized_comparison.png" alt="Bar chart comparing 10-fold accuracy and macro-F1 of FGCS2019DNN, MC1DCNN and VARDHAN-v3">
+        <figcaption><strong>Figure 1.</strong> Standardised 10-fold segment-level comparison.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/report/vardhan_training_curves.png" alt="VARDHAN-v3 training and validation curves">
+        <figcaption><strong>Figure 2.</strong> VARDHAN-v3 training curves. Best checkpoints were reached between epochs 4 and 6 of the 15-epoch schedule.</figcaption>
+      </figure>
+
+      <h2 id="perfold">2. Per-Fold Results</h2>
+      <table>
+        <caption>Table 2. FGCS2019DNN per-fold results (20,430 train / 2,270 test segments per fold). Test loss is MSE.</caption>
+        <thead>
+          <tr><th class="num">Fold</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Macro precision</th><th class="num">Macro recall</th><th class="num">Test loss</th><th class="num">Train time (s)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="num">85.15%</td><td class="num">0.8049</td><td class="num">0.9136</td><td class="num">0.7789</td><td class="num">0.0573</td><td class="num">1,169</td></tr>
+          <tr><td class="num">2</td><td class="num">85.20%</td><td class="num">0.7983</td><td class="num">0.9218</td><td class="num">0.7726</td><td class="num">0.0577</td><td class="num">1,227</td></tr>
+          <tr><td class="num">3</td><td class="num">83.70%</td><td class="num">0.7742</td><td class="num">0.9070</td><td class="num">0.7525</td><td class="num">0.0632</td><td class="num">1,170</td></tr>
+          <tr><td class="num">4</td><td class="num">85.29%</td><td class="num">0.8049</td><td class="num">0.9158</td><td class="num">0.7786</td><td class="num">0.0579</td><td class="num">1,153</td></tr>
+          <tr><td class="num">5</td><td class="num">84.89%</td><td class="num">0.8002</td><td class="num">0.9155</td><td class="num">0.7743</td><td class="num">0.0576</td><td class="num">1,125</td></tr>
+          <tr><td class="num">6</td><td class="num">84.14%</td><td class="num">0.7839</td><td class="num">0.9158</td><td class="num">0.7603</td><td class="num">0.0603</td><td class="num">1,015</td></tr>
+          <tr><td class="num">7</td><td class="num">84.19%</td><td class="num">0.7845</td><td class="num">0.9150</td><td class="num">0.7606</td><td class="num">0.0603</td><td class="num">1,109</td></tr>
+          <tr><td class="num">8</td><td class="num">84.80%</td><td class="num">0.7860</td><td class="num">0.9165</td><td class="num">0.7631</td><td class="num">0.0583</td><td class="num">1,167</td></tr>
+          <tr><td class="num">9</td><td class="num">84.80%</td><td class="num">0.7829</td><td class="num">0.9058</td><td class="num">0.7612</td><td class="num">0.0602</td><td class="num">1,125</td></tr>
+          <tr><td class="num">10</td><td class="num">83.08%</td><td class="num">0.7790</td><td class="num">0.9134</td><td class="num">0.7540</td><td class="num">0.0644</td><td class="num">1,197</td></tr>
+        </tbody>
+      </table>
+
+      <table>
+        <caption>Table 3. MC1DCNN per-fold results. Test loss is cross-entropy.</caption>
+        <thead>
+          <tr><th class="num">Fold</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Macro precision</th><th class="num">Macro recall</th><th class="num">Test loss</th><th class="num">Train time (s)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="num">64.32%</td><td class="num">0.6262</td><td class="num">0.8574</td><td class="num">0.6343</td><td class="num">0.6547</td><td class="num">155</td></tr>
+          <tr><td class="num">2</td><td class="num">60.40%</td><td class="num">0.5790</td><td class="num">0.8506</td><td class="num">0.6053</td><td class="num">0.6794</td><td class="num">154</td></tr>
+          <tr><td class="num">3</td><td class="num">63.35%</td><td class="num">0.5977</td><td class="num">0.8547</td><td class="num">0.6101</td><td class="num">0.7281</td><td class="num">156</td></tr>
+          <tr><td class="num">4</td><td class="num">77.22%</td><td class="num">0.7424</td><td class="num">0.8901</td><td class="num">0.7189</td><td class="num">0.6742</td><td class="num">155</td></tr>
+          <tr><td class="num">5</td><td class="num">60.97%</td><td class="num">0.5904</td><td class="num">0.8400</td><td class="num">0.6139</td><td class="num">0.6724</td><td class="num">158</td></tr>
+          <tr><td class="num">6</td><td class="num">62.42%</td><td class="num">0.5898</td><td class="num">0.8549</td><td class="num">0.6069</td><td class="num">0.6702</td><td class="num">157</td></tr>
+          <tr><td class="num">7</td><td class="num">69.96%</td><td class="num">0.6673</td><td class="num">0.8728</td><td class="num">0.6565</td><td class="num">0.6597</td><td class="num">155</td></tr>
+          <tr><td class="num">8</td><td class="num">68.41%</td><td class="num">0.6537</td><td class="num">0.8703</td><td class="num">0.6471</td><td class="num">0.6914</td><td class="num">156</td></tr>
+          <tr><td class="num">9</td><td class="num">60.97%</td><td class="num">0.5756</td><td class="num">0.8239</td><td class="num">0.5971</td><td class="num">0.7114</td><td class="num">156</td></tr>
+          <tr><td class="num">10</td><td class="num">62.07%</td><td class="num">0.5852</td><td class="num">0.8633</td><td class="num">0.6047</td><td class="num">0.6780</td><td class="num">155</td></tr>
+        </tbody>
+      </table>
+
+      <table>
+        <caption>Table 4. VARDHAN-v3 per-fold results (15 epochs per fold, best epoch by validation loss).</caption>
+        <thead>
+          <tr><th class="num">Fold</th><th class="num">Best epoch</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Balanced accuracy</th><th class="num">Test loss</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="num">5</td><td class="num">71.54%</td><td class="num">0.7027</td><td class="num">68.38%</td><td class="num">0.7788</td></tr>
+          <tr><td class="num">2</td><td class="num">6</td><td class="num">71.54%</td><td class="num">0.6879</td><td class="num">66.67%</td><td class="num">0.7726</td></tr>
+          <tr><td class="num">3</td><td class="num">6</td><td class="num">72.11%</td><td class="num">0.6935</td><td class="num">67.52%</td><td class="num">0.7683</td></tr>
+          <tr><td class="num">4</td><td class="num">5</td><td class="num">70.84%</td><td class="num">0.6987</td><td class="num">67.20%</td><td class="num">0.7766</td></tr>
+          <tr><td class="num">5</td><td class="num">6</td><td class="num">72.56%</td><td class="num">0.7132</td><td class="num">70.38%</td><td class="num">0.7608</td></tr>
+          <tr><td class="num">6</td><td class="num">4</td><td class="num">73.26%</td><td class="num">0.7155</td><td class="num">70.10%</td><td class="num">0.7593</td></tr>
+          <tr><td class="num">7</td><td class="num">5</td><td class="num">72.42%</td><td class="num">0.7058</td><td class="num">68.18%</td><td class="num">0.7404</td></tr>
+          <tr><td class="num">8</td><td class="num">6</td><td class="num">72.16%</td><td class="num">0.6967</td><td class="num">68.41%</td><td class="num">0.7580</td></tr>
+          <tr><td class="num">9</td><td class="num">4</td><td class="num">68.55%</td><td class="num">0.6532</td><td class="num">62.64%</td><td class="num">0.8299</td></tr>
+          <tr><td class="num">10</td><td class="num">5</td><td class="num">70.70%</td><td class="num">0.6856</td><td class="num">67.18%</td><td class="num">0.7922</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Total VARDHAN-v3 10-fold run time: 2,265.2 s on an NVIDIA Tesla T4. Mean test loss 0.7737 &plusmn; 0.0230.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
