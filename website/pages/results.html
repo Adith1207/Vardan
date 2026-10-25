@@ -227,6 +227,98 @@
         <li><strong>Phantom</strong> recall is the weakest for every model (32.0% FGCS, 31.4% MC1DCNN, 43.0% VARDHAN-v3). VARDHAN-v3 has the highest Phantom recall and F1 (0.5572 vs 0.4810 and 0.4753).</li>
         <li>The spectrum-based baselines separate <strong>Background</strong> almost perfectly (&gt; 99.8% recall) because they use both receiver bands; VARDHAN-v3, using a single-band 20.48 &micro;s slice, reaches 83.2%.</li>
       </ul>
+
+      <h2 id="strict">4. Strict Recording-Level Benchmark</h2>
+      <div class="note warning">
+        <p><strong>Key finding.</strong> When the test set contains only recording sessions never seen in training, every model &ndash; baselines and VARDHAN alike &ndash; falls to near the 25% chance level for four classes. Segment-level accuracy on DroneRF does not indicate how well a model generalises to new recordings.</p>
+      </div>
+
+      <h3>VARDHAN-v3 (final strict run)</h3>
+      <p>Configuration: 50 segments per file, 100 epochs, seed 42, AdamW (lr 3&times;10<sup>&minus;4</sup>), cosine annealing, label smoothing 0.05, per-segment normalisation. Test set: 73 files from 4 unseen sessions, 3,650 segments.</p>
+      <table>
+        <caption>Table 11. VARDHAN-v3 strict test summary (<code>results/vardhan_v3_strict_per_segment/aggregate_metrics.json</code>).</caption>
+        <tbody>
+          <tr><th scope="row">Test accuracy</th><td class="num">24.79%</td></tr>
+          <tr><th scope="row">Macro-F1</th><td class="num">0.2005</td></tr>
+          <tr><th scope="row">Balanced accuracy</th><td class="num">22.02%</td></tr>
+          <tr><th scope="row">Macro precision</th><td class="num">0.5184</td></tr>
+          <tr><th scope="row">Test loss (cross-entropy)</th><td class="num">1.4735</td></tr>
+          <tr><th scope="row">Best epoch (minimum validation loss)</th><td class="num">1 of 100</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Table 12. VARDHAN-v3 strict per-class metrics (<code>test_metrics.csv</code>).</caption>
+        <thead>
+          <tr><th>Class</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Support</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Background</td><td class="num">0.6118</td><td class="num">0.1450</td><td class="num">0.2344</td><td class="num">1,000</td></tr>
+          <tr><td>AR</td><td class="num">0.2528</td><td class="num">0.1952</td><td class="num">0.2203</td><td class="num">1,050</td></tr>
+          <tr><td>Bebop</td><td class="num">0.2090</td><td class="num">0.5152</td><td class="num">0.2974</td><td class="num">1,050</td></tr>
+          <tr><td>Phantom</td><td class="num">1.0000</td><td class="num">0.0255</td><td class="num">0.0496</td><td class="num">550</td></tr>
+          <tr class="total"><td>Macro average</td><td class="num">0.5184</td><td class="num">0.2202</td><td class="num">0.2005</td><td class="num">3,650</td></tr>
+        </tbody>
+      </table>
+      <p>The best validation loss occurred after the first epoch; further training only fitted session-specific characteristics of the 15 training recordings. Phantom recall is 2.55% (14 of 550 segments), consistent with the receiver band shift between the training (H band) and test (L band) Phantom files. Predictions are skewed towards Bebop (51.5% recall, 20.9% precision).</p>
+
+      <h3>Historical baselines (strict, 5 segments per file)</h3>
+      <table>
+        <caption>Table 13. Strict recording-level results of earlier baseline runs (as reported in <code>reports/VARDHAN_IEEE_Report.md</code> and <code>reports/VARDHAN_FACT_CHECK.md</code>; 365 test segments).</caption>
+        <thead>
+          <tr><th>Model</th><th>Input</th><th class="num">Parameters</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Macro precision</th><th class="num">Macro recall</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FGCS2019DNN (paper mode)</td><td>Power spectrum</td><td class="num">565,956</td><td class="num">28.22%</td><td class="num">0.1100</td><td class="num">0.0706</td><td class="num">0.2500</td></tr>
+          <tr><td>Baseline1DCNN</td><td>8 sub-bands</td><td class="num">275,940</td><td class="num">28.77%</td><td class="num">0.1117</td><td class="num">0.0719</td><td class="num">0.2500</td></tr>
+          <tr><td>DSCNN</td><td>1-D waveform</td><td class="num">68,228</td><td class="num">26.58%</td><td class="num">0.1520</td><td class="num">0.1800</td><td class="num">0.2312</td></tr>
+          <tr><td>CS-CNN</td><td>CS measurements</td><td class="num">1,059,908</td><td class="num">28.77%</td><td class="num">0.1117</td><td class="num">0.0719</td><td class="num">0.2500</td></tr>
+          <tr><td>MobileNet-style</td><td>2-D spectrogram</td><td class="num">11,588</td><td class="num">28.77%</td><td class="num">0.1117</td><td class="num">0.0719</td><td class="num">0.2500</td></tr>
+        </tbody>
+      </table>
+      <p>A macro recall of exactly 0.2500 with macro precision near 0.07 means the model predicts one class for every segment. Four of the five baselines collapsed entirely to the majority class (Bebop). DSCNN is the only baseline with slightly non-trivial predictions (macro-F1 0.1520). VARDHAN-v3 does not collapse (macro-F1 0.2005, the highest under the strict protocol), but its accuracy is still near chance.</p>
+      <figure>
+        <img src="../assets/figures/report/strict_comparison.png" alt="Bar chart of strict recording-level accuracy for all models">
+        <figcaption><strong>Figure 5.</strong> Strict recording-level comparison across models.</figcaption>
+      </figure>
+
+      <h2 id="gap">5. Generalisation Gap</h2>
+      <table>
+        <caption>Table 14. Accuracy under the two protocols.</caption>
+        <thead>
+          <tr><th>Model</th><th class="num">10-fold segment-level</th><th class="num">Strict recording-level</th><th class="num">Gap (points)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FGCS2019DNN</td><td class="num">84.52%</td><td class="num">28.22%</td><td class="num">&minus;56.30</td></tr>
+          <tr><td>MC1DCNN</td><td class="num">65.01%</td><td class="num">28.77%</td><td class="num">&minus;36.24</td></tr>
+          <tr><td>VARDHAN-v3</td><td class="num">71.57%</td><td class="num">24.79%</td><td class="num">&minus;46.78</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">The strict baseline values come from the historical runs (5 segments/file, 5 epochs); the FGCS strict run used the paper-mode architecture. The gaps show the size of the effect; they are not a controlled comparison.</p>
+      <figure>
+        <img src="../assets/figures/report/generalization_gap.png" alt="Chart of the drop in accuracy from segment-level to recording-level evaluation">
+        <figcaption><strong>Figure 6.</strong> Generalisation gap between segment-level and recording-level evaluation.</figcaption>
+      </figure>
+      <h3>Causes</h3>
+      <ol>
+        <li><strong>Recording-session domain shift</strong> &ndash; segments from one session share transmitter, receiver, propagation and environment characteristics, which models learn as shortcuts.</li>
+        <li><strong>High intra-recording correlation</strong> &ndash; consecutive segments are strongly correlated, violating the independence assumption behind random segment splits.</li>
+        <li><strong>Phantom band shift</strong> &ndash; training Phantom files are H-band (2.462 GHz) and test files are L-band (2.422 GHz).</li>
+        <li><strong>Time-variant channel effects</strong> &ndash; multipath and interference differ between sessions.</li>
+        <li><strong>Few independent sessions</strong> &ndash; only 15 training sessions are available to learn session-invariant features.</li>
+      </ol>
+
+      <h2 id="normalisation">6. Normalisation Ablation</h2>
+      <table>
+        <caption>Table 15. Effect of the normalisation strategy on VARDHAN-v3 (segment-level protocol).</caption>
+        <thead>
+          <tr><th>Normalisation</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">Background recall</th><th>Behaviour</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Global train-fold Z-score (1-fold diagnostic)</td><td class="num">45.55%</td><td class="num">0.3459</td><td class="num">0.00%</td><td>Collapse towards Bebop (Bebop recall 99.29%)</td></tr>
+          <tr><td>Per-segment (10-fold)</td><td class="num">71.57% &plusmn; 1.25%</td><td class="num">0.6953 &plusmn; 0.0168</td><td class="num">83.17%</td><td>Stable across folds</td></tr>
+        </tbody>
+      </table>
+      <p>With a single global mean and standard deviation, high-amplitude transmitters such as the Phantom (about 2.4&times; the average power of other classes; see <a href="signal-analysis.html#crossclass">Signal Analysis &sect;7</a>) dominate the scaling, and low-amplitude Background segments are squeezed into a narrow range. Per-segment normalisation makes the representation independent of amplitude and was adopted for all final VARDHAN-v3 experiments.</p>
     </div>
   </main>
 
