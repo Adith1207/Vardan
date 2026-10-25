@@ -38,6 +38,75 @@
   <main>
     <div class="container">
       <h1>Project Overview</h1>
+
+      <h2>Abstract</h2>
+      <p class="lead">The rapid proliferation of low-cost commercial unmanned aerial vehicles (UAVs) has created new security threats from unauthorised drone operations. Conventional counter-UAS sensors &ndash; radar, optical/infrared cameras and acoustic arrays &ndash; are limited by line-of-sight requirements, weather susceptibility and cost. Passive radio-frequency (RF) sensing offers a resilient alternative, because nearly every commercial drone continuously exchanges control and video telemetry with its operator.</p>
+      <p>VARDAN is a research project that builds the RF sensing core of a multi-modal, edge-deployable counter-UAS system. The work faithfully reproduces published deep-learning baselines on the public DroneRF dataset, re-evaluates them under a strict recording-level protocol with zero session leakage, and proposes <strong>VARDHAN-v3</strong>, a lightweight (119,806-parameter) dual-domain neural network that jointly processes the raw time-domain waveform and a three-channel Fourier representation of each 2048-sample RF segment.</p>
+      <p>The central finding is a large generalisation gap: models that achieve 65&ndash;85% accuracy under the standard segment-level 10-fold cross-validation fall to 25&ndash;29% when tested on recording sessions never seen during training. The project documents this gap, its causes, and the evidence still required before edge deployment.</p>
+
+      <h2>Key Figures at a Glance</h2>
+      <table>
+        <caption>Table 1. Summary of the project scope and headline results.</caption>
+        <tbody>
+          <tr><th scope="row">Dataset</th><td>DroneRF (Al-Sa&rsquo;d et al., 2019) &ndash; 454 CSV files, 227 synchronised L/H receiver pairs</td></tr>
+          <tr><th scope="row">Classes</th><td>4: Background RF, Parrot Bebop, Parrot AR Drone 2.0, DJI Phantom 3</td></tr>
+          <tr><th scope="row">Segments</th><td>22,700 (100 per receiver pair), 2048 samples each (20.48 &micro;s at 100 MS/s)</td></tr>
+          <tr><th scope="row">Proposed model</th><td>VARDHAN-v3 &ndash; 119,806 trainable parameters, 11.81 M MACs, 0.459 MB (FP32)</td></tr>
+          <tr><th scope="row">10-fold segment-level accuracy</th><td>VARDHAN-v3 71.57% &plusmn; 1.25% &middot; FGCS2019DNN 84.52% &plusmn; 0.73% &middot; MC1DCNN 65.01% &plusmn; 5.35%</td></tr>
+          <tr><th scope="row">Strict recording-level accuracy</th><td>VARDHAN-v3 24.79% (macro-F1 0.2005) on 4 unseen recording sessions</td></tr>
+          <tr><th scope="row">Status</th><td>Phase 2 (RF preprocessing and baselines) in progress; acoustic, vision, fusion and edge phases planned</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Problem Statement</h2>
+      <p>Published RF-based drone classifiers on DroneRF report high accuracy, but they are evaluated with segment-level random splits. Because consecutive segments cut from the same recording share transmitter, receiver, channel and environment characteristics, a random split places near-identical segments in both the training and test sets. This <em>segment-level leakage</em> inflates reported accuracy and hides the true cross-recording generalisation ability that a deployed sensor would require.</p>
+
+      <h2>Research Goals</h2>
+      <ol>
+        <li>Reproduce baseline RF classification models faithfully from the literature and their released code.</li>
+        <li>Establish standardised benchmarks, including a strict recording-level protocol with zero session overlap.</li>
+        <li>Propose VARDHAN-v3, a lightweight dual-domain RF architecture for robust drone detection and identification.</li>
+        <li>Develop an acoustic module for near-field detection.</li>
+        <li>Integrate a computer-vision module and fuse all modalities adaptively.</li>
+        <li>Optimise and deploy the system on ARM-class embedded and microcontroller platforms.</li>
+      </ol>
+
+      <h2>Project Phases</h2>
+      <table>
+        <caption>Table 2. Project phases and current status.</caption>
+        <thead>
+          <tr><th>Phase</th><th>Description</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Repository scaffolding, configuration and path resolution</td><td>Completed</td></tr>
+          <tr><td>2</td><td>RF signal preprocessing, baseline reproduction and VARDHAN RF models</td><td>In progress</td></tr>
+          <tr><td>3</td><td>Acoustic signal classifier</td><td>Planned</td></tr>
+          <tr><td>4</td><td>Vision object detector</td><td>Planned</td></tr>
+          <tr><td>5</td><td>Adaptive multi-modal sensor fusion</td><td>Planned</td></tr>
+          <tr><td>6</td><td>Edge TinyML optimisation and deployment</td><td>Planned</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Contents of this Site</h2>
+      <table>
+        <caption>Table 3. Site map.</caption>
+        <thead>
+          <tr><th>Section</th><th>Contents</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="pages/dataset.html">Dataset</a></td><td>DroneRF acquisition hardware, class composition, BUI labelling and the strict recording-level split.</td></tr>
+          <tr><td><a href="pages/signal-analysis.html">Signal Analysis</a></td><td>Exploratory time-domain, spectral, stationarity, autocorrelation and distribution analysis.</td></tr>
+          <tr><td><a href="pages/preprocessing.html">Preprocessing</a></td><td>Generic pipeline, model-specific input representations and leakage controls.</td></tr>
+          <tr><td><a href="pages/baselines.html">Baselines</a></td><td>FGCS2019DNN, MC1DCNN, DSCNN, Compressive-Sensing CNN and MobileNetV3Small.</td></tr>
+          <tr><td><a href="pages/vardhan.html">VARDHAN Models</a></td><td>Evolution from VARDHAN-v1 through v2A to the final v3 architecture.</td></tr>
+          <tr><td><a href="pages/protocols.html">Evaluation Protocols</a></td><td>Segment-level 10-fold and strict recording-level protocols, hyperparameters and configuration.</td></tr>
+          <tr><td><a href="pages/results.html">Results</a></td><td>Aggregate and per-fold metrics, confusion matrices, strict results and the generalisation gap.</td></tr>
+          <tr><td><a href="pages/limitations.html">Limitations</a></td><td>Evidence gaps, literature ambiguities and dataset limitations.</td></tr>
+          <tr><td><a href="pages/roadmap.html">Roadmap</a></td><td>Planned acoustic, vision, fusion and edge-deployment work.</td></tr>
+          <tr><td><a href="pages/code.html">Code</a></td><td>Repository structure, modules, scripts, notebooks and installation.</td></tr>
+          <tr><td><a href="pages/references.html">Team &amp; References</a></td><td>Project team, guide, bibliography and licence.</td></tr>
+        </tbody>
+      </table>
     </div>
   </main>
 
