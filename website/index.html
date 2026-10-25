@@ -44,6 +44,16 @@
       <p>VARDAN is an RF-only research project on passive drone detection and identification. The work faithfully reproduces published deep-learning baselines on the public DroneRF dataset, re-evaluates them under a strict recording-level protocol with zero session leakage, and proposes <strong>VARDHAN-v3</strong>, a lightweight (119,806-parameter) dual-domain neural network that jointly processes the raw time-domain waveform and a three-channel Fourier representation of each 2048-sample RF segment.</p>
       <p>The central finding is a large generalisation gap: models that achieve 65&ndash;85% accuracy under the standard segment-level 10-fold cross-validation fall to 24.8&ndash;28.8% when tested on recording sessions never seen during training. The project documents this gap, its causes, and the evidence still required before the results can be relied on in practice.</p>
 
+      <h2>Demonstration</h2>
+      <p>The video below demonstrates the VARDAN project.</p>
+      <figure>
+        <video controls preload="metadata">
+          <source src="assets/video/demo.mp4" type="video/mp4">
+          Your browser cannot play this video. <a href="assets/video/demo.mp4">Download the demo video</a>.
+        </video>
+        <figcaption><strong>Video 1.</strong> Demonstration of the VARDAN project.</figcaption>
+      </figure>
+
       <h2>Key Figures at a Glance</h2>
       <table>
         <caption>Table 1. Summary of the project scope and headline results.</caption>

@@ -214,10 +214,16 @@ figure {
   text-align: center;
 }
 
-figure img {
+figure img,
+figure video {
   max-width: 100%;
   height: auto;
   border: 1px solid #d6d6d6;
+}
+
+figure video {
+  width: 100%;
+  background: #000;
 }
 
 figcaption {
