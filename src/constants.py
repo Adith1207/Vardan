@@ -6,10 +6,8 @@ consistent across data ingestion, modeling, and evaluation modules.
 
 # Modalities supported by the system
 MODALITY_RF = "rf"
-MODALITY_ACOUSTIC = "acoustic"
-MODALITY_VISION = "vision"
 
-SUPPORTED_MODALITIES = [MODALITY_RF, MODALITY_ACOUSTIC, MODALITY_VISION]
+SUPPORTED_MODALITIES = [MODALITY_RF]
 
 # Label definitions mapping class IDs to human-readable strings (Canonical 4-class)
 LABEL_MAP = {

@@ -72,9 +72,7 @@ def test_constants():
     """Verify global constants and maps."""
     from constants import SUPPORTED_MODALITIES, LABEL_MAP
     
-    assert "rf" in SUPPORTED_MODALITIES
-    assert "acoustic" in SUPPORTED_MODALITIES
-    assert "vision" in SUPPORTED_MODALITIES
+    assert SUPPORTED_MODALITIES == ["rf"]
     
     assert LABEL_MAP[0] == "no_drone"
     assert len(LABEL_MAP) == 4
