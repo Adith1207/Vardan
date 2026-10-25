@@ -7,9 +7,6 @@ scipy>=1.10.0
 pandas>=2.0.0
 h5py>=3.8.0
 
-# Signal Processing
-librosa>=0.10.0
-
 # Visualization & Progress Tracking
 matplotlib>=3.7.0
 tqdm>=4.65.0
