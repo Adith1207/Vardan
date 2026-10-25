@@ -1,42 +1,42 @@
-# Research Paper Draft: Vardan Multi-Modal Counter-UAS
+# Research Paper Draft: Vardan RF-Based Drone Detection
 
-Drafting and assets compilation outline for publication (IEEE/Elsevier style).
+Drafting and assets compilation outline for publication (IEEE/Elsevier style). Final numbers must come from `results/` and `reports/VARDHAN_IEEE_Report.md`.
 
 ---
 
 ## 1. Title & Abstract (Proposed)
-* **Title**: Towards an Indigenous, Portable and Energy-Efficient Counter-UAS Detection System using Adaptive Multi-Modal Artificial Intelligence
+* **Title**: Lightweight Dual-Domain RF Classification of Drones and the Cost of Recording-Level Evaluation
 * **Abstract**: (Draft placeholder)
 
 ## 2. Introduction
-* Motivation: Security threats of low-altitude commercial drones.
-* Limitations of single-modality RF or vision systems in high noise/obscurity.
+* Motivation: Security threats of low-altitude commercial drones; passive RF sensing.
+* Problem: segment-level random splits leak recording-session information and inflate reported accuracy.
 * Key Contributions of Vardan:
-    1. Multi-modal adaptivity.
-    2. Embedded/TinyML efficiency suitable for edge microcontrollers.
-    3. Performance improvements over state-of-the-art baselines.
+    1. Faithful reproduction of published DroneRF baselines.
+    2. Strict recording-level benchmark with zero session overlap.
+    3. VARDHAN-v3, a lightweight dual-domain (temporal + spectral) RF network.
 
 ## 3. Related Work
-* RF-based drone detection (Review of DroneRF dataset papers).
-* Acoustic drone signature classification.
-* Vision-based detection on edge devices.
-* Sensor Fusion techniques.
+* RF-based drone detection on DroneRF and related datasets.
+* Spectral, time-domain, and compressive-sensing deep-learning approaches.
+* Lightweight network design (depthwise separable convolutions, squeeze-and-excitation).
 
 ## 4. Proposed Vardan Architecture
-* **Signal Processing Pipeline**: Windowing, STFT spectrogram extraction, wavelet decomposition.
-* **VardhanRFNet Model**: Multi-scale feature branches, dilated convolutions.
-* **Multi-Modal Fusion Module**: Entropy-based dynamic late fusion model.
+* **Signal Processing Pipeline**: Per-segment detrending and normalisation, 2048-point rFFT, three-channel spectral representation.
+* **VARDHAN-v3 Model**: Multi-scale temporal and spectral backbones, attention pooling, cross-domain gated fusion of the two RF views.
 
 ## 5. Experimental Setup
-* Datasets: DroneRF (RF), custom acoustic datasets, vision target profiles.
+* Dataset: DroneRF (RF).
+* Protocols: segment-level 10-fold cross-validation and strict recording-level split.
 * Training configs: Hyperparameters, hardware details.
-* Edge profiling suite: Parameter counts, flash/RAM utilization, latency.
+* Software profiling: Parameter counts, MACs/FLOPs, CPU/GPU latency.
 
 ## 6. Results & Analysis
-* **RF Detection Accuracy**: Benchmark tables comparing baseline models (1D-CNN, DS-CNN, MobileNet) with VardhanRFNet.
-* **Multimodal Fusion Performance**: Tables demonstrating single sensor vs. fused detection under interference.
-* **Edge Optimization Benchmarks**: Pareto frontiers showing accuracy vs inference latency.
+* **Segment-Level Benchmark**: FGCS2019DNN, MC1DCNN and VARDHAN-v3 10-fold results.
+* **Strict Recording-Level Benchmark**: Generalisation gap and per-class analysis (incl. Phantom band shift).
+* **Ablations**: Normalisation strategy; branch contributions.
+* **Efficiency**: Accuracy vs. parameters and software-measured latency.
 
 ## 7. Conclusions & Future Work
 * Summary of findings.
-* Path forward to deployment on ARM Cortex microcontrollers (TinyML).
+* Session-invariant training, multi-site data, open-set evaluation, and measured embedded deployment as future work.
