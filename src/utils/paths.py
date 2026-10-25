@@ -58,8 +58,6 @@ def ensure_directories():
         PAPERS_DIR,
         PAPERS_DIR / "Dataset_Papers",
         PAPERS_DIR / "RF_Papers",
-        PAPERS_DIR / "Acoustic_Papers",
-        PAPERS_DIR / "Vision_Papers",
         PAPERS_DIR / "Surveys",
     ]
     for directory in directories:
