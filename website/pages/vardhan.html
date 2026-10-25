@@ -142,6 +142,111 @@ Total trainable parameters: 69,559</code></pre>
         </tbody>
       </table>
       <p>Training scripts: <code>scripts/train_vardhan_v2a.py</code> (strict) and <code>scripts/train_vardhan_v2a_standardized.py</code> (10-fold); structural check: <code>scripts/verify_vardhan_v2a.py</code>.</p>
+
+      <h2 id="v3">3. VARDHAN-v3 (Final Proposed Architecture)</h2>
+      <p>VARDHAN-v3, the <em>Multi-Scale Dual-Domain RF-Net</em>, processes each raw 2048-sample waveform through two complementary backbones: a multi-scale temporal network and a multi-scale spectral network fed by the three-channel Fourier representation (log power, real and imaginary parts). The two embeddings are pooled with learnable attention and combined by bi-directional cross-domain gating, in which each domain modulates the other.</p>
+      <figure>
+        <img src="../assets/figures/report/vardhan_overall_architecture.png" alt="Overall VARDHAN-v3 architecture block diagram">
+        <figcaption><strong>Figure 1.</strong> Overall VARDHAN-v3 architecture: shared waveform input, temporal and spectral backbones, attention pooling and cross-domain gated fusion.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/report/vardhan_detailed_architecture.png" alt="Detailed VARDHAN-v3 layer diagram">
+        <figcaption><strong>Figure 2.</strong> Detailed layer-level view of VARDHAN-v3.</figcaption>
+      </figure>
+
+      <h3>Layer specification</h3>
+      <pre><code>Input x: (B, 1, 2048) raw waveform, per-segment normalised
+
+TEMPORAL BACKBONE (multi-scale TCN)
+  Stem   Conv1d(1 -&gt; 32, k=15, s=2, p=7) + BatchNorm + GELU         -&gt; (B, 32, 1024)
+  T1     MultiScaleTemporalBlock(32 -&gt; 48, s=2, d=1)                -&gt; (B, 48, 512)
+  T2     MultiScaleTemporalBlock(48 -&gt; 64, s=2, d=2)                -&gt; (B, 64, 256)
+  T3     MultiScaleTemporalBlock(64 -&gt; 80, s=2, d=4)                -&gt; (B, 80, 128)
+  T4     MultiScaleTemporalBlock(80 -&gt; 80, s=1, d=8)                -&gt; (B, 80, 128)
+  Pool   AttentionPool1d(80 -&gt; 40 -&gt; 1)                             -&gt; h_T (B, 80)
+  Block: channels split into 4 groups, parallel depthwise convs k = 3, 7, 15, 31
+         -&gt; pointwise conv -&gt; BatchNorm -&gt; GELU -&gt; Squeeze-Excitation -&gt; + residual
+
+SPECTRAL BACKBONE (input computed inside the model)
+  Spectrum  detrend -&gt; rFFT(2048) -&gt; drop DC -&gt; [log power, Re, Im]  -&gt; (B, 3, 1024)
+  Stem   Conv1d(3 -&gt; 32, k=11, s=2, p=5) + BatchNorm + GELU         -&gt; (B, 32, 512)
+  F1     MultiScaleSpectralBlock(32 -&gt; 48, s=2, d=1)                -&gt; (B, 48, 256)
+  F2     MultiScaleSpectralBlock(48 -&gt; 64, s=2, d=2)                -&gt; (B, 64, 128)
+  F3     MultiScaleSpectralBlock(64 -&gt; 80, s=1, d=4)                -&gt; (B, 80, 128)
+  F4     MultiScaleSpectralBlock(80 -&gt; 80, s=1, d=8)                -&gt; (B, 80, 128)
+  Pool   AttentionPool1d(80 -&gt; 40 -&gt; 1)                             -&gt; h_F (B, 80)
+  Block: channels split into 2 groups, parallel depthwise convs k = 5, 11
+         -&gt; pointwise conv -&gt; BatchNorm -&gt; GELU -&gt; Squeeze-Excitation -&gt; + residual
+
+CROSS-DOMAIN GATED FUSION AND HEAD
+  g_T = sigmoid(Linear(40 -&gt; 80)(GELU(Linear(80 -&gt; 40)(h_F))))     temporal gate from spectral context
+  g_F = sigmoid(Linear(40 -&gt; 80)(GELU(Linear(80 -&gt; 40)(h_T))))     spectral gate from temporal context
+  h_cat = [h_T, h_F, h_T * g_T, h_F * g_F]                          -&gt; (B, 320)
+  Linear(320 -&gt; 64) + BatchNorm + GELU + Dropout(0.2) -&gt; Linear(64 -&gt; 4) -&gt; logits</code></pre>
+
+      <h3>Design rationale</h3>
+      <ul>
+        <li><strong>Multi-scale depthwise kernels</strong> (3/7/15/31 samples) capture micro-transients, carrier cycles, symbol preambles and packet envelopes in parallel at low cost.</li>
+        <li><strong>Dilation schedule</strong> {1, 2, 4, 8} with striding widens the receptive field without adding parameters.</li>
+        <li><strong>Squeeze-and-Excitation</strong> re-weights channels using global context (reduction 4, minimum 8 hidden units).</li>
+        <li><strong>Complex spectral input</strong> keeps phase information (real and imaginary parts), which the power spectrum used by the baselines discards.</li>
+        <li><strong>Attention pooling</strong> replaces the global average pooling that caused v1 to collapse.</li>
+        <li><strong>Bi-directional gating</strong> lets each domain suppress or emphasise features in the other before classification.</li>
+      </ul>
+
+      <h3>Parameter budget</h3>
+      <table>
+        <caption>Table 5. VARDHAN-v3 trainable parameters per component (computed from <code>src/models/vardhan_v3.py</code>).</caption>
+        <thead>
+          <tr><th>Component</th><th class="num">Parameters</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Temporal stem</td><td class="num">544</td></tr>
+          <tr><td>Temporal blocks T1&ndash;T4 (4,828 + 9,072 + 14,596 + 10,980)</td><td class="num">39,476</td></tr>
+          <tr><td>Temporal attention pooling</td><td class="num">3,281</td></tr>
+          <tr><td>Spectral stem</td><td class="num">1,120</td></tr>
+          <tr><td>Spectral blocks F1&ndash;F4 (4,636 + 8,784 + 14,212 + 10,500)</td><td class="num">38,132</td></tr>
+          <tr><td>Spectral attention pooling</td><td class="num">3,281</td></tr>
+          <tr><td>Cross-domain gates (g<sub>T</sub>, g<sub>F</sub>)</td><td class="num">13,040</td></tr>
+          <tr><td>Classifier head (Linear 320&rarr;64, BatchNorm, Linear 64&rarr;4)</td><td class="num">20,932</td></tr>
+          <tr class="total"><td>Total</td><td class="num">119,806</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Of the block parameters, Squeeze-and-Excitation modules account for 19,880 (9,940 per backbone).</p>
+
+      <h3>Computational footprint</h3>
+      <table>
+        <caption>Table 6. VARDHAN-v3 complexity.</caption>
+        <tbody>
+          <tr><th scope="row">Trainable parameters</th><td>119,806</td></tr>
+          <tr><th scope="row">Multiply&ndash;accumulates per inference</th><td>11.81 M MACs (theoretical, as reported)</td></tr>
+          <tr><th scope="row">Floating-point operations</th><td>23.63 M FLOPs (theoretical, as reported)</td></tr>
+          <tr><th scope="row">Weight storage (FP32)</th><td>&asymp; 479 KB (119,806 &times; 4 bytes); within the 512 KB TinyML model-size limit in <code>configs/evaluation.yaml</code></td></tr>
+          <tr><th scope="row">Weight storage (INT8)</th><td>&asymp; 120 KB (theoretical; quantisation not yet evaluated)</td></tr>
+          <tr><th scope="row">Latency target</th><td>&lt; 5 ms per 2048-sample segment (not yet measured on embedded hardware)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Training configuration</h3>
+      <table>
+        <caption>Table 7. VARDHAN-v3 training hyperparameters.</caption>
+        <thead>
+          <tr><th>Setting</th><th>10-fold segment-level</th><th>Strict recording-level</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Optimiser</td><td colspan="2">AdamW (&beta; = 0.9, 0.999), weight decay 1&times;10<sup>&minus;4</sup></td></tr>
+          <tr><td>Learning rate</td><td colspan="2">3&times;10<sup>&minus;4</sup>, cosine annealing to 1&times;10<sup>&minus;6</sup></td></tr>
+          <tr><td>Loss</td><td colspan="2">Cross-entropy with label smoothing 0.05, no class weighting</td></tr>
+          <tr><td>Batch size</td><td colspan="2">32</td></tr>
+          <tr><td>Normalisation</td><td colspan="2">Per-segment</td></tr>
+          <tr><td>Epochs</td><td>15 per fold</td><td>100 (best checkpoint by minimum validation loss)</td></tr>
+          <tr><td>Seed</td><td>1</td><td>42</td></tr>
+          <tr><td>Data</td><td>22,700 segments, 10 stratified folds</td><td>50 segments per file</td></tr>
+          <tr><td>Hardware</td><td>NVIDIA Tesla T4 (total 10-fold time 2,265 s)</td><td>&ndash;</td></tr>
+          <tr><td>Script</td><td><code>scripts/train_vardhan_v3_standardized.py</code></td><td><code>scripts/train_vardhan_v3.py</code></td></tr>
+        </tbody>
+      </table>
+      <p>Results for VARDHAN-v3 are reported on the <a href="results.html">Results</a> page.</p>
     </div>
   </main>
 
