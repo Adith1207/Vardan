@@ -39,14 +39,15 @@
       <h1>Limitations and Evidence Gaps</h1>
       <p>This page lists what the project has <em>not</em> yet demonstrated, based on <code>reports/VARDHAN_EVIDENCE_GAPS.md</code>, <code>reports/VARDHAN_FACT_CHECK.md</code> and the forensic audits. These boundaries should be read alongside every result on this site.</p>
 
-      <h2 id="hardware">1. Unmeasured Edge-Hardware Properties</h2>
+      <h2 id="hardware">1. Hardware Properties Not Measured (Deployment Out of Scope)</h2>
+      <p>Physical deployment on embedded devices is outside the scope of this RF-only research project. All efficiency figures are software estimates or measurements on a development machine; the properties below have not been measured on any target hardware.</p>
       <table>
-        <caption>Table 1. Deployment properties not yet measured.</caption>
+        <caption>Table 1. Hardware properties not measured.</caption>
         <thead>
-          <tr><th>Property</th><th>Current status</th><th>Boundary</th><th>Required action</th></tr>
+          <tr><th>Property</th><th>Current status</th><th>Boundary</th><th>What would be needed</th></tr>
         </thead>
         <tbody>
-          <tr><td>Real-time latency</td><td>Unmeasured on target MCUs / SBCs</td><td>11.81 M MACs and 23.63 M FLOPs are graph-derived; no ms/segment figure exists for Jetson Orin, Raspberry Pi 5 or ARM Cortex-M.</td><td>Export to ONNX / TensorRT / TFLite and profile on physical devices.</td></tr>
+          <tr><td>Real-time latency</td><td>Not measured on embedded hardware</td><td>11.81 M MACs and 23.63 M FLOPs are graph-derived; no ms/segment figure exists for any embedded device.</td><td>Export the model and profile it on physical devices.</td></tr>
           <tr><td>Memory footprint</td><td>Weights only (&asymp; 0.48 MB FP32)</td><td>Peak activation and scratch SRAM during streaming inference are unknown.</td><td>Profile peak runtime memory on embedded Linux.</td></tr>
           <tr><td>Power consumption</td><td>Unmeasured</td><td>Energy cost of continuous 100 MS/s ingestion is unquantified.</td><td>Measure with a hardware power monitor.</td></tr>
           <tr><td>FP16 / INT8 quantisation</td><td>Unmeasured</td><td>All results are FP32; PTQ / QAT accuracy loss is unknown.</td><td>Evaluate post-training and quantisation-aware training.</td></tr>

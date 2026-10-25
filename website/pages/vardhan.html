@@ -221,9 +221,9 @@ CROSS-DOMAIN GATED FUSION AND HEAD
           <tr><th scope="row">Trainable parameters</th><td>119,806</td></tr>
           <tr><th scope="row">Multiply&ndash;accumulates per inference</th><td>11.81 M MACs (theoretical, as reported)</td></tr>
           <tr><th scope="row">Floating-point operations</th><td>23.63 M FLOPs (theoretical, as reported)</td></tr>
-          <tr><th scope="row">Weight storage (FP32)</th><td>&asymp; 479 KB (119,806 &times; 4 bytes); within the 512 KB TinyML model-size limit in <code>configs/evaluation.yaml</code></td></tr>
+          <tr><th scope="row">Weight storage (FP32)</th><td>&asymp; 479 KB (119,806 &times; 4 bytes); within the 512 KB model-size target in <code>configs/evaluation.yaml</code></td></tr>
           <tr><th scope="row">Weight storage (INT8)</th><td>&asymp; 120 KB (theoretical; quantisation not yet evaluated)</td></tr>
-          <tr><th scope="row">Latency target</th><td>&lt; 5 ms per 2048-sample segment (not yet measured on embedded hardware)</td></tr>
+          <tr><th scope="row">Latency target</th><td>&lt; 5 ms per 2048-sample segment (design target; not measured on embedded hardware, which is out of scope)</td></tr>
         </tbody>
       </table>
 
