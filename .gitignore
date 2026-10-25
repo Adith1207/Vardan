@@ -37,7 +37,6 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Model Checkpoints & Weights
-models/checkpoints/*
 !models/checkpoints/.gitkeep
 models/baselines/*
 !models/baselines/.gitkeep
