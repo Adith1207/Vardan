@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vardan"
 version = "0.1.0"
-description = "Vardan: A Portable Indigenous Multi-Modal Counter-UAS System using AI"
+description = "Vardan: Lightweight RF-based drone detection and identification on the DroneRF dataset"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
