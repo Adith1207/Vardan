@@ -1,7 +1,8 @@
-"""Signal processing operations for RF and Acoustic waveforms."""
+"""Signal processing operations for RF waveforms."""
 
 from typing import Tuple
 import numpy as np
+from scipy.signal import get_window
 
 
 def normalize_signal(signal: np.ndarray, method: str = "standard") -> np.ndarray:
@@ -74,16 +75,15 @@ def compute_stft(
     Args:
         signal: Input 1D signal.
         n_fft: Size of FFT window.
-        hop_length: Length of overlap between frames.
-        window: Window type.
+        hop_length: Number of samples between successive frames.
+        window: Window type accepted by ``scipy.signal.get_window``.
 
     Returns:
-        Complex spectrogram array.
+        Complex spectrogram of shape (n_fft // 2 + 1, num_frames).
     """
-    # Placeholder: Real implementation will use librosa.stft or scipy.signal.stft.
-    # This dummy function generates an array of expected spectrogram dimensions.
-    num_frames = (len(signal) - n_fft) // hop_length + 1
-    num_frames = max(1, num_frames)
-    freq_bins = n_fft // 2 + 1
-    dummy_spectrogram = np.random.randn(freq_bins, num_frames) + 1j * np.random.randn(freq_bins, num_frames)
-    return dummy_spectrogram
+    x = np.asarray(signal, dtype=np.float64)
+    if len(x) < n_fft:
+        x = np.pad(x, (0, n_fft - len(x)))
+    frames = np.lib.stride_tricks.sliding_window_view(x, n_fft)[::hop_length]
+    win = get_window(window, n_fft)
+    return np.fft.rfft(frames * win, axis=-1).T
