@@ -37,7 +37,7 @@
   <main>
     <div class="container">
       <h1>Roadmap</h1>
-      <p>VARDAN is scoped to RF-only research. The remaining work focuses on completing the benchmarks, testing robustness, and closing the gap between segment-level and recording-level performance documented on the <a href="results.html#gap">Results</a> page.</p>
+      <p>VARDAN is scoped to RF-only research, and all project phases are complete. The sections after the phase table list future research directions: completing the remaining benchmarks, testing robustness, and closing the gap between segment-level and recording-level performance documented on the <a href="results.html#gap">Results</a> page.</p>
 
       <table>
         <caption>Table 1. Project phases.</caption>
@@ -46,9 +46,9 @@
         </thead>
         <tbody>
           <tr><td>1</td><td>Repository scaffolding, configuration and path resolution</td><td>Completed</td><td><code>src/config.py</code>, <code>src/utils/paths.py</code>, <code>configs/</code></td></tr>
-          <tr><td>2</td><td>RF preprocessing, baseline reproduction and VARDHAN RF models</td><td>In progress</td><td>Notebooks 01&ndash;05, <code>src/models/</code></td></tr>
-          <tr><td>3</td><td>Remaining baseline benchmarks, ablations and RF robustness experiments</td><td>Planned</td><td><code>notebooks/09_Experiments.ipynb</code>, <code>scripts/</code></td></tr>
-          <tr><td>4</td><td>Session-invariant training to close the recording-level generalisation gap</td><td>Planned</td><td><code>src/models/</code>, <code>src/data/</code></td></tr>
+          <tr><td>2</td><td>RF preprocessing, baseline reproduction and VARDHAN RF models</td><td>Completed</td><td>Notebooks 01&ndash;05, <code>src/models/</code></td></tr>
+          <tr><td>3</td><td>Strict recording-level benchmark and generalisation-gap analysis</td><td>Completed</td><td><code>data/splits/</code>, <code>results/vardhan_v3_strict_per_segment/</code></td></tr>
+          <tr><td>4</td><td>RF-only scope cleanup, documentation and project website</td><td>Completed</td><td><code>Readme.md</code>, <code>website/</code></td></tr>
         </tbody>
       </table>
 
