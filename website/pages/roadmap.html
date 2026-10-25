@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roadmap – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html" aria-current="page">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Roadmap</h1>
+      <p>The RF module is the first of three sensing modalities planned for VARDAN. The remaining phases extend the system to acoustic and visual detection, fuse the three modalities adaptively, and optimise the complete pipeline for embedded deployment.</p>
+
+      <table>
+        <caption>Table 1. Project phases.</caption>
+        <thead>
+          <tr><th>Phase</th><th>Description</th><th>Status</th><th>Notebook / code</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Repository scaffolding, configuration and path resolution</td><td>Completed</td><td><code>src/config.py</code>, <code>src/utils/paths.py</code>, <code>configs/</code></td></tr>
+          <tr><td>2</td><td>RF preprocessing, baseline reproduction and VARDHAN RF models</td><td>In progress</td><td>Notebooks 01&ndash;05, <code>src/models/</code></td></tr>
+          <tr><td>3</td><td>Acoustic signal classifier</td><td>Planned</td><td><code>notebooks/06_Acoustic_Module.ipynb</code></td></tr>
+          <tr><td>4</td><td>Vision object detector</td><td>Planned</td><td><code>notebooks/07_Vision_Module.ipynb</code></td></tr>
+          <tr><td>5</td><td>Adaptive multi-modal fusion</td><td>Planned (engine scaffolded)</td><td><code>notebooks/08_Multimodal_Fusion.ipynb</code>, <code>src/fusion/fusion.py</code></td></tr>
+          <tr><td>6</td><td>Edge TinyML optimisation and deployment</td><td>Planned</td><td><code>src/benchmark/bench.py</code>, <code>notebooks/09_Experiments.ipynb</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="rf-next">1. Next Steps for the RF Module</h2>
+      <ul>
+        <li>Close the generalisation gap with session-invariant training: cross-recording augmentation, domain-adversarial objectives, and training on both receiver bands to remove the Phantom band shift.</li>
+        <li>Complete the 10-fold benchmark for DSCNN, CS-CNN and MobileNetV3Small, and run the planned VARDHAN-v2A ablation (Experiments A&ndash;D).</li>
+        <li>Re-run the historical strict baselines with the same 50 segments/file and training budget as VARDHAN-v3 for a controlled comparison.</li>
+        <li>Evaluate open-set rejection of unknown drones and confidence calibration.</li>
+      </ul>
+
+      <h2 id="acoustic">2. Acoustic Module (Phase 3)</h2>
+      <ul>
+        <li>Extract audio spectrograms (STFT) and Mel-frequency cepstral coefficients.</li>
+        <li>Train a lightweight CNN on rotor and blade-passing harmonics for near-field detection.</li>
+        <li>Feature-extraction entry point: <code>extract_acoustic_features()</code> in <code>src/features/extraction.py</code>.</li>
+      </ul>
+
+      <h2 id="vision">3. Vision Module (Phase 4)</h2>
+      <ul>
+        <li>Optimise a compact detector (YOLOv8-nano or EfficientDet) for small UAV bounding boxes.</li>
+        <li>Benchmark latency on embedded hardware.</li>
+        <li>Address variable lighting and weather conditions.</li>
+      </ul>
+
+      <h2 id="fusion">4. Adaptive Multi-Modal Fusion (Phase 5)</h2>
+      <p>A late-fusion engine, <code>AdaptiveFusion</code>, is already implemented in <code>src/fusion/fusion.py</code>. It combines per-class probability vectors from the RF, acoustic and vision models in two ways:</p>
+      <ul>
+        <li><strong>Static weighting</strong> &ndash; default weights RF 0.4, acoustic 0.3, vision 0.3 (normalised to sum to 1).</li>
+        <li><strong>Entropy-based dynamic weighting</strong> &ndash; each modality&rsquo;s Shannon entropy <em>H</em> = &minus;&Sigma; <em>p</em> log <em>p</em> is computed and weights are set inversely proportional to <em>H</em>, so a confident sensor dominates and a degraded or uncertain sensor (e.g. a camera in fog) is down-weighted automatically.</li>
+      </ul>
+      <p>Cross-modal attention is a planned extension.</p>
+
+      <h2 id="edge">5. Edge TinyML Deployment (Phase 6)</h2>
+      <ul>
+        <li>Export models to ONNX and optimise with TensorRT / TFLite.</li>
+        <li>Target platforms: NVIDIA Jetson Orin, Raspberry Pi 5 and ARM Cortex-M microcontrollers.</li>
+        <li>Evaluate post-training and quantisation-aware INT8 quantisation.</li>
+        <li>Measure latency, peak memory and power using <code>benchmark_inference_latency()</code> and <code>profile_model_footprint()</code> in <code>src/benchmark/bench.py</code>, plus hardware power monitoring.</li>
+      </ul>
+      <table>
+        <caption>Table 2. TinyML deployment constraints (<code>configs/evaluation.yaml</code>).</caption>
+        <thead>
+          <tr><th>Constraint</th><th class="num">Limit</th><th>VARDHAN-v3 status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Model size</td><td class="num">512 KB</td><td>&asymp; 479 KB FP32 weights (within limit)</td></tr>
+          <tr><td>RAM usage</td><td class="num">256 KB</td><td>Not yet measured</td></tr>
+          <tr><td>Flash usage</td><td class="num">512 KB</td><td>Not yet measured</td></tr>
+          <tr><td>Inference latency</td><td class="num">50 ms</td><td>Not yet measured (target &lt; 5 ms)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
