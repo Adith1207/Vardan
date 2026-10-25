@@ -79,6 +79,49 @@
         <li><strong>Class ordering</strong> &ndash; 0 Background (BUI 00000), 1 Bebop (100xx), 2 AR (101xx), 3 Phantom (11000).</li>
       </ol>
       <p>The MC1DCNN reproduction reuses the same spectrum and divides the 2048 bins into 8 uniform sub-bands of 10 MHz each, producing an (8, 256) input.</p>
+
+      <h2 id="per-model">4. Model-Specific Input Representations</h2>
+      <table>
+        <caption>Table 1. Input representation per model.</caption>
+        <thead>
+          <tr><th>Model</th><th>Pipeline</th><th>Input shape</th><th>Domain</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FGCS2019DNN</td><td>Mean detrend &rarr; 2048-point FFT (L and H stitched) &rarr; |FFT|<sup>2</sup> &rarr; max normalisation</td><td><code>(2048,)</code></td><td>Power spectrum</td></tr>
+          <tr><td>MC1DCNN (Baseline1DCNN)</td><td>As FGCS, then channelised into 8 sub-bands of 10 MHz (256 bins each)</td><td><code>(8, 256)</code></td><td>Sub-band spectrum</td></tr>
+          <tr><td>DSCNN</td><td>Raw waveform with Z-score normalisation (statistics from the training split)</td><td><code>(1, 2048)</code></td><td>Time domain</td></tr>
+          <tr><td>Compressive-Sensing CNN</td><td>Gaussian random projection <em>y</em> = &Phi;<em>x</em>, compression ratio 0.5 (<em>M</em> = 1024) &rarr; Z-score</td><td><code>(1, 1024)</code></td><td>Compressed measurements</td></tr>
+          <tr><td>MobileNetV3Small</td><td>STFT (Hann window, n<sub>fft</sub> = 1024, hop = 256) &rarr; 20&middot;log<sub>10</sub>|STFT| &rarr; Z-score</td><td><code>(1, 65, 61)</code></td><td>2-D spectrogram</td></tr>
+          <tr><td>VARDHAN-v1 / v2A</td><td>Raw waveform, per-segment normalisation; v2A computes its spectral branches internally</td><td><code>(1, 2048)</code></td><td>Time (+ internal spectrum)</td></tr>
+          <tr><td>VARDHAN-v3</td><td>Raw waveform, per-segment Z-score; three-channel spectrum computed inside the model</td><td><code>(1, 2048)</code> &rarr; internal <code>(3, 1024)</code></td><td>Time + complex spectrum</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="vardhan-spectral">5. VARDHAN-v3 Three-Channel Spectral Representation</h2>
+      <p>VARDHAN-v3 computes its spectral input on the fly inside the network (<code>VardhanV3.extract_spectral_representation</code> in <code>src/models/vardhan_v3.py</code>), so the same raw waveform tensor feeds both branches and no spectral features are cached. After mean detrending, a 2048-point rFFT is taken, the DC bin is dropped, and the 1024 remaining bins are mapped to three channels:</p>
+      <table>
+        <caption>Table 2. Spectral channels (N = 2048, k = 1 &hellip; 1024).</caption>
+        <thead>
+          <tr><th>Channel</th><th>Definition</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0 &ndash; Log power</td><td><em>P</em>[<em>k</em>] = ln(1 + 1000 &middot; |<em>X</em>[<em>k</em>]|<sup>2</sup> / <em>N</em>)</td><td>Compressed dynamic range of the power spectrum</td></tr>
+          <tr><td>1 &ndash; Real part</td><td><em>R</em>[<em>k</em>] = Re(<em>X</em>[<em>k</em>]) / &radic;<em>N</em></td><td>Retains phase information discarded by the power spectrum</td></tr>
+          <tr><td>2 &ndash; Imaginary part</td><td><em>I</em>[<em>k</em>] = Im(<em>X</em>[<em>k</em>]) / &radic;<em>N</em></td><td>Completes the complex Fourier coefficient</td></tr>
+        </tbody>
+      </table>
+      <p>The resulting tensor has shape <em>S</em> &isin; &#8477;<sup>B&times;3&times;1024</sup>.</p>
+
+      <h2 id="leakage">6. Leakage Controls</h2>
+      <ul>
+        <li>Any dataset-level normalisation statistics (&mu;, &sigma;) are fitted only on the training split or training fold; validation and test data use the frozen training statistics.</li>
+        <li>Per-segment detrending and normalisation are computed independently for every segment and therefore cannot leak information between splits.</li>
+        <li>No preprocessed NPZ caches are shared across splits; <code>DroneRFLazyDataset</code> (<code>src/data/loader.py</code>) loads and transforms segments lazily on demand.</li>
+        <li>The strict protocol additionally isolates entire recording sessions (see <a href="dataset.html#strict-split">Dataset &sect;5</a>).</li>
+      </ul>
+      <div class="note">
+        <p><strong>Normalisation matters.</strong> For VARDHAN-v3, replacing per-segment normalisation with a single global train-fold Z-score collapsed accuracy from 71.57% to 45.55% and Background recall to 0%. Global statistics let high-amplitude transmitters (e.g. the Phantom) dominate the scaling. See <a href="results.html#normalisation">Results &sect;6</a>.</p>
+      </div>
     </div>
   </main>
 
