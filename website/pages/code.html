@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code and Repository – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html" aria-current="page">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Code and Repository</h1>
+      <p>The source code is available at <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a> under the MIT License. It is a Python 3.11 / PyTorch research codebase organised as an installable package (<code>pyproject.toml</code>).</p>
+
+      <h2 id="structure">1. Repository Structure</h2>
+      <pre><code>Vardan/
+  configs/          YAML configuration (dataset, preprocessing, training, evaluation, logging)
+  data/             raw/, interim/, processed/, metadata/, splits/ (train.csv, val.csv, test.csv)
+  docs/             protocol, reproduction-matrix and architecture notes
+  experiments/      logs/, reports/, runs/
+  figures/          notebook-generated figures
+  models/           baselines/, checkpoints/, vardhan/
+  notebooks/        01-09 Jupyter notebooks
+  reports/          IEEE report (Markdown and LaTeX), audits, fact check, evidence gaps, bibliography
+  results/          metrics, confusion matrices and run configs for every benchmark
+  scripts/          training, verification and analysis entry points
+  src/              Python package (see below)
+  tests/            pytest suite
+  website/          this site
+  environment.yml   conda environment "vardan"
+  requirements.txt  pip requirements
+  pyproject.toml    package metadata (Python &gt;= 3.11)</code></pre>
+
+      <h2 id="modules">2. Source Modules (<code>src/</code>)</h2>
+      <table>
+        <caption>Table 1. Package modules and key symbols.</caption>
+        <thead>
+          <tr><th>Module</th><th>Key classes / functions</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>models/vardhan_v3.py</code></td><td><code>VardhanV3</code>, <code>MultiScaleTemporalBlock</code>, <code>MultiScaleSpectralBlock</code>, <code>SqueezeExcitation1d</code>, <code>AttentionPool1d</code>, <code>CrossDomainGatedFusion</code></td><td>Final dual-domain RF network (119,806 params)</td></tr>
+          <tr><td><code>models/vardhan_v2a.py</code></td><td><code>VardhanV2A</code></td><td>Tri-branch intermediate design (69,559 params)</td></tr>
+          <tr><td><code>models/vardhan.py</code></td><td><code>VardhanRFNet</code></td><td>VARDHAN-v1 prototype (6,692 params)</td></tr>
+          <tr><td><code>models/baselines.py</code></td><td><code>FGCS2019DNN</code>, <code>Baseline1DCNN</code>, <code>DSCNN</code>, <code>CompressiveSensingCNN</code>, <code>MobileNetV3Small</code></td><td>Literature baselines</td></tr>
+          <tr><td><code>models/fgcs_faithful_dnn.py</code></td><td><code>FGCSFaithfulDNN</code></td><td>Code-mode and paper-mode FGCS DNN</td></tr>
+          <tr><td><code>models/model_factory.py</code></td><td><code>get_model()</code></td><td>Instantiate any model by name</td></tr>
+          <tr><td><code>models/trainer.py</code></td><td><code>BaselineTrainer</code></td><td>Training loop, deterministic seeding, checkpointing, metric tracking</td></tr>
+          <tr><td><code>data/loader.py</code></td><td><code>DroneRFLazyDataset</code></td><td>Lazy PyTorch dataset with model-specific preprocessing and train-only normalisation statistics</td></tr>
+          <tr><td><code>data/fgcs_faithful_loader.py</code></td><td><code>FGCSFaithfulLazyDataset</code></td><td>227 L/H pairs &times; 100 segments for the faithful benchmark</td></tr>
+          <tr><td><code>data/create_splits.py</code>, <code>data/create_diagnostic_segment_splits.py</code></td><td>&ndash;</td><td>Strict recording-level and diagnostic split generation</td></tr>
+          <tr><td><code>preprocessing/fgcs_faithful.py</code></td><td>&ndash;</td><td>Re-implementation of the original MATLAB feature pipeline</td></tr>
+          <tr><td><code>preprocessing/fft.py</code>, <code>spectrogram.py</code>, <code>signals.py</code></td><td><code>FFTProcessor</code>, <code>SpectrogramProcessor</code>, <code>compute_rfft()</code>, <code>compute_stft()</code></td><td>Spectral and time&ndash;frequency transforms</td></tr>
+          <tr><td><code>preprocessing/normalization.py</code></td><td><code>SignalNormalizer</code></td><td>max, min&ndash;max, Z-score and identity normalisation</td></tr>
+          <tr><td><code>preprocessing/channelization.py</code>, <code>compression.py</code></td><td>&ndash;</td><td>Sub-band channelisation (MC1DCNN) and compressive sensing (CS-CNN)</td></tr>
+          <tr><td><code>preprocessing/raw_loader.py</code>, <code>pipeline.py</code></td><td><code>DroneRFLoader</code>, <code>DroneRFPreprocessor</code></td><td>CSV loading and unified preprocessing interface</td></tr>
+          <tr><td><code>evaluation/metrics.py</code></td><td><code>calculate_metrics()</code>, <code>generate_confusion_matrix()</code></td><td>Accuracy, precision, recall, F1, confusion matrix</td></tr>
+          <tr><td><code>fusion/fusion.py</code></td><td><code>AdaptiveFusion</code></td><td>Static and entropy-weighted late fusion</td></tr>
+          <tr><td><code>features/extraction.py</code></td><td><code>extract_rf_features()</code>, <code>extract_acoustic_features()</code></td><td>Hand-crafted feature extraction</td></tr>
+          <tr><td><code>benchmark/bench.py</code></td><td><code>benchmark_inference_latency()</code>, <code>profile_model_footprint()</code></td><td>Latency and footprint profiling</td></tr>
+          <tr><td><code>visualization/plots.py</code></td><td>&ndash;</td><td>Plotting utilities</td></tr>
+          <tr><td><code>config.py</code>, <code>constants.py</code>, <code>utils/</code></td><td>&ndash;</td><td>Paths, sampling constants, label maps and helpers</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="scripts">3. Scripts</h2>
+      <table>
+        <caption>Table 2. Command-line entry points in <code>scripts/</code>. Every training script accepts <code>--mock</code> to run on synthetic data without the dataset.</caption>
+        <thead>
+          <tr><th>Script</th><th>Purpose</th><th>Main arguments</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>train_fgcs_faithful_reproduction.py</code></td><td>10-fold faithful FGCS2019DNN</td><td><code>--raw_data_dir</code>, <code>--mock</code></td></tr>
+          <tr><td><code>train_baseline1dcnn_faithful_reproduction.py</code></td><td>10-fold faithful MC1DCNN</td><td><code>--raw_data_dir</code>, <code>--mock</code></td></tr>
+          <tr><td><code>train_vardhan_v3_standardized.py</code></td><td>VARDHAN-v3 10-fold segment-level benchmark</td><td><code>--normalization</code>, <code>--epochs</code>, <code>--batch_size</code>, <code>--lr</code>, <code>--min_lr</code>, <code>--weight_decay</code>, <code>--label_smoothing</code>, <code>--class_weighted</code>, <code>--seed</code>, <code>--num_folds</code>, <code>--max_folds</code>, <code>--single_fold</code>, <code>--device</code>, <code>--output_dir</code>, <code>--preflight_only</code></td></tr>
+          <tr><td><code>train_vardhan_v3.py</code></td><td>VARDHAN-v3 strict recording-level benchmark</td><td><code>--normalization</code>, <code>--epochs</code>, <code>--lr</code>, <code>--lr_scheduler</code>, <code>--label_smoothing</code>, <code>--use_class_weights</code>, <code>--seed</code>, <code>--samples_per_file</code>, <code>--splits_dir</code>, <code>--raw_data_dir</code>, <code>--output_dir</code></td></tr>
+          <tr><td><code>train_vardhan_v2a.py</code>, <code>train_vardhan_v2a_standardized.py</code></td><td>VARDHAN-v2A strict and 10-fold training</td><td>As for v3</td></tr>
+          <tr><td><code>train_baselines.py</code></td><td>Strict-protocol suite for all baselines</td><td><code>--models</code> (fgcs2019dnn, baseline1dcnn, dscnn, compressed_sensing, mobilenetv3small, vardhan, all), <code>--samples_per_file</code>, <code>--epochs</code>, <code>--batch_size</code>, <code>--lr</code>, <code>--resume</code></td></tr>
+          <tr><td><code>analyze_data_distribution.py</code></td><td>Split summary, class balance and band-shift diagnostics</td><td><code>--splits_dir</code>, <code>--raw_data_dir</code>, <code>--samples_per_file</code></td></tr>
+          <tr><td><code>verify_fgcs_faithful.py</code>, <code>verify_preprocessing.py</code>, <code>verify_vardhan_v2a.py</code></td><td>Pipeline and architecture verification</td><td>&ndash;</td></tr>
+          <tr><td><code>smoke_test_fgcs_faithful.py</code>, <code>run_smoke_test.py</code></td><td>Fast sanity checks</td><td>&ndash;</td></tr>
+          <tr><td><code>benchmark_faithful_preprocessing.py</code></td><td>Preprocessing speed and memory profiling</td><td>&ndash;</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="notebooks">4. Notebooks</h2>
+      <table>
+        <caption>Table 3. Notebooks in <code>notebooks/</code>.</caption>
+        <thead>
+          <tr><th>Notebook</th><th>Content</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>01_DroneRF_Dataset_Exploration.ipynb</code></td><td>File inventory, class and receiver distributions</td></tr>
+          <tr><td><code>02_DroneRF_Signal_Characterization.ipynb</code></td><td>Time, frequency, stationarity, autocorrelation and distribution analysis</td></tr>
+          <tr><td><code>03_Baseline_Model_Reproduction.ipynb</code></td><td>Baseline reproduction</td></tr>
+          <tr><td><code>04_Benchmarking.ipynb</code></td><td>Benchmark comparison</td></tr>
+          <tr><td><code>05_Vardhan_RF_Module.ipynb</code></td><td>VARDHAN RF module</td></tr>
+          <tr><td><code>06_Acoustic_Module.ipynb</code></td><td>Acoustic module (planned)</td></tr>
+          <tr><td><code>07_Vision_Module.ipynb</code></td><td>Vision module (planned)</td></tr>
+          <tr><td><code>08_Multimodal_Fusion.ipynb</code></td><td>Multi-modal fusion (planned)</td></tr>
+          <tr><td><code>09_Experiments.ipynb</code></td><td>Experiment tracking</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="install">5. Installation and Usage</h2>
+      <h3>Environment</h3>
+      <pre><code>git clone https://github.com/Adith1207/Vardan.git
+cd Vardan
+conda env create -f environment.yml
+conda activate vardan
+# or, without conda:
+pip install -r requirements.txt</code></pre>
+      <table>
+        <caption>Table 4. Dependencies (minimum versions).</caption>
+        <thead>
+          <tr><th>Category</th><th>Packages</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Deep learning</td><td>torch &ge; 2.0.0, torchvision &ge; 0.15.0</td></tr>
+          <tr><td>Scientific computing</td><td>numpy &ge; 1.24.0, scipy &ge; 1.10.0, pandas &ge; 2.0.0, h5py &ge; 3.8.0, scikit-learn &ge; 1.2.0</td></tr>
+          <tr><td>Signal processing</td><td>librosa &ge; 0.10.0 (optional: numba for faster CSV parsing)</td></tr>
+          <tr><td>Utilities</td><td>matplotlib &ge; 3.7.0, tqdm &ge; 4.65.0, pyyaml &ge; 6.0</td></tr>
+          <tr><td>Development</td><td>pytest &ge; 7.3.0, ipykernel &ge; 6.23.0, black &ge; 23.3.0, ruff &ge; 0.0.270</td></tr>
+        </tbody>
+      </table>
+      <h3>Data</h3>
+      <p>Download DroneRF from Mendeley Data and place the extracted folders under <code>data/raw/DroneRF/</code> (see <code>data/README.md</code>).</p>
+      <h3>Reproducing the main results</h3>
+      <pre><code># 10-fold segment-level benchmark
+python scripts/train_fgcs_faithful_reproduction.py --raw_data_dir data/raw/DroneRF
+python scripts/train_baseline1dcnn_faithful_reproduction.py --raw_data_dir data/raw/DroneRF
+python scripts/train_vardhan_v3_standardized.py --normalization per_segment --epochs 15 --raw_data_dir data/raw/DroneRF
+
+# Strict recording-level benchmark
+python scripts/train_vardhan_v3.py --normalization per_segment --epochs 100 --samples_per_file 50 --splits_dir data/splits --raw_data_dir data/raw/DroneRF
+
+# Quick check without the dataset
+python scripts/train_vardhan_v3.py --mock --epochs 1</code></pre>
+      <h3>Tests</h3>
+      <p>The <code>tests/</code> directory contains 15 pytest modules covering the faithful pipelines, input representations, split diagnostics, trainer checkpointing, configuration loading and the VARDHAN-v2A / v3 models and training scripts. Run with <code>pytest tests/</code>.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
