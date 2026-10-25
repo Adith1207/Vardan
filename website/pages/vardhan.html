@@ -150,8 +150,8 @@ Total trainable parameters: 69,559</code></pre>
         <figcaption><strong>Figure 1.</strong> Overall VARDHAN-v3 architecture: shared waveform input, temporal and spectral backbones, attention pooling and cross-domain gated fusion.</figcaption>
       </figure>
       <figure>
-        <img src="../assets/figures/report/vardhan_detailed_architecture.png" alt="Detailed VARDHAN-v3 layer diagram">
-        <figcaption><strong>Figure 2.</strong> Detailed layer-level view of VARDHAN-v3.</figcaption>
+        <img src="../assets/figures/report/vardhan_detailed_architecture.png" alt="Detailed VARDHAN-v3 pipeline from drone RF emission and USRP receiver through the temporal and spectral branches, cross-domain gated fusion and classifier head to the final decision">
+        <figcaption><strong>Figure 2.</strong> Detailed VARDHAN-v3 pipeline: RF capture by the NI USRP-2943R at 100 MS/s, slicing into 2048-sample segments, preprocessing, the temporal (MS-TCN) and spectral (complex rFFT) branches with their layer settings, bi-directional cross-domain gated fusion (320-D), the classifier head, and the four-class RF output.</figcaption>
       </figure>
 
       <h3>Layer specification</h3>
