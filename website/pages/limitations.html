@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Limitations and Evidence Gaps – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html" aria-current="page">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Limitations and Evidence Gaps</h1>
+      <p>This page lists what the project has <em>not</em> yet demonstrated, based on <code>reports/VARDHAN_EVIDENCE_GAPS.md</code>, <code>reports/VARDHAN_FACT_CHECK.md</code> and the forensic audits. These boundaries should be read alongside every result on this site.</p>
+
+      <h2 id="hardware">1. Unmeasured Edge-Hardware Properties</h2>
+      <table>
+        <caption>Table 1. Deployment properties not yet measured.</caption>
+        <thead>
+          <tr><th>Property</th><th>Current status</th><th>Boundary</th><th>Required action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Real-time latency</td><td>Unmeasured on target MCUs / SBCs</td><td>11.81 M MACs and 23.63 M FLOPs are graph-derived; no ms/segment figure exists for Jetson Orin, Raspberry Pi 5 or ARM Cortex-M.</td><td>Export to ONNX / TensorRT / TFLite and profile on physical devices.</td></tr>
+          <tr><td>Memory footprint</td><td>Weights only (&asymp; 0.48 MB FP32)</td><td>Peak activation and scratch SRAM during streaming inference are unknown.</td><td>Profile peak runtime memory on embedded Linux.</td></tr>
+          <tr><td>Power consumption</td><td>Unmeasured</td><td>Energy cost of continuous 100 MS/s ingestion is unquantified.</td><td>Measure with a hardware power monitor.</td></tr>
+          <tr><td>FP16 / INT8 quantisation</td><td>Unmeasured</td><td>All results are FP32; PTQ / QAT accuracy loss is unknown.</td><td>Evaluate post-training and quantisation-aware training.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="literature">2. Literature Ambiguities and Resolutions</h2>
+      <table>
+        <caption>Table 2. Ambiguities in the reproduced papers.</caption>
+        <thead>
+          <tr><th>Paper</th><th>Ambiguity</th><th>Resolution in this project</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Al-Sa&rsquo;d et al. (FGCS 2019)</td><td>Paper text: Dense 256&rarr;128&rarr;64 (565,956 params). Released <code>Classification.py</code>: Dense 128&rarr;128&rarr;128 (295,812 params).</td><td>Both implemented; the code variant is the primary reproduction and reaches 84.52% &plusmn; 0.73%, matching the paper&rsquo;s 84.5%.</td></tr>
+          <tr><td>Allahham et al. (ICIoT 2020)</td><td>8 &times; 256 sub-bands and two Conv1D stages described, but exact kernel sizes and strides not given; overlapping and non-overlapping filter banks both discussed.</td><td>Representative CNN with k = 11, s = 2 and k = 5, s = 1 (275,940 params), non-overlapping sub-bands; documented as a project choice.</td></tr>
+          <tr><td>Mo et al. (Sensors 2022)</td><td>Multi-channel random demodulation with several sensing matrices; source code not released.</td><td>Deterministic Gaussian random projection with unit-norm rows (CR = 0.5, M = 1024) followed by a 1-D CNN. Some project reports describe this matrix as Bernoulli; the implementation in <code>src/preprocessing/compression.py</code> is Gaussian.</td></tr>
+          <tr><td>Medaiyese et al. (2021)</td><td>Combines wavelet decomposition with XGBoost / DSCNN on low-frequency spectrum.</td><td>Evaluated as a depthwise separable 1-D CNN on the raw waveform (68,228 params).</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="dataset">3. Dataset and Protocol Limitations</h2>
+      <table>
+        <caption>Table 3. Dataset and protocol limitations.</caption>
+        <thead>
+          <tr><th>Limitation</th><th>Context</th><th>Implication</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Single-site capture</td><td>All 454 DroneRF files were recorded in one environment with one pair of USRP-2943R receivers.</td><td>Cross-location and cross-hardware transfer cannot be established without external datasets.</td></tr>
+          <tr><td>Phantom band shift</td><td>All 21 Phantom training files are H-band; validation/test Phantom files are L-band.</td><td>Natural domain shift contributing to 2.55% strict Phantom recall.</td></tr>
+          <tr><td>Partial 10-fold coverage</td><td>Because of GPU time limits, the full 10-fold benchmark was run for FGCS2019DNN, MC1DCNN and VARDHAN-v3 only.</td><td>DSCNN, CS-CNN and MobileNetV3Small have strict-protocol numbers only.</td></tr>
+          <tr><td>Sampling disparity</td><td>Historical strict baselines: 5 segments/file (365 test segments). VARDHAN-v3 strict: 50 segments/file (3,650).</td><td>The two strict tables are reported separately and are not a controlled comparison.</td></tr>
+          <tr><td>Closed-set evaluation</td><td>Only 4 known classes are evaluated.</td><td>Rejection of unknown drones and confidence calibration are untested.</td></tr>
+          <tr><td>Short segments, single band</td><td>VARDHAN models see 2048 samples (20.48 &micro;s) from one 40 MHz receiver.</td><td>Burst-level and cross-band context available to longer or stitched representations is not used.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="consistency">4. Documentation Consistency Notes</h2>
+      <p>While building this site, all figures were cross-checked against the raw result files. The following inconsistencies in the project reports were found; this site uses the result files as the authoritative source.</p>
+      <ul>
+        <li><strong>VARDHAN-v3 per-class metrics.</strong> Some report tables list per-class precision, recall and F1 that do not match the pooled confusion matrix in <code>results/vardhan_v3_per_segment_10fold/</code>. This site shows the values recomputed from that matrix.</li>
+        <li><strong>VARDHAN-v3 parameter breakdown.</strong> The component budget quoted in the IEEE report does not sum to 119,806. This site gives a breakdown recomputed from the layer definitions, which sums exactly to 119,806.</li>
+        <li><strong>Class index order.</strong> The benchmark scripts use Background, Bebop, AR, Phantom (0&ndash;3), whereas <code>src/constants.py</code> and the strict-split scripts use no_drone, ar_drone, bebop_drone, phantom_drone. Every table on this site names classes explicitly.</li>
+        <li><strong>Strict VARDHAN-v3 confusion matrix.</strong> A confusion matrix printed in one report does not match the per-class recalls in <code>test_metrics.csv</code>, so it is not reproduced here; only the per-class metrics from the result file are shown.</li>
+      </ul>
+
+      <h2 id="deployment">5. Software vs Operational Readiness</h2>
+      <table>
+        <caption>Table 4. Deployment readiness.</caption>
+        <thead>
+          <tr><th>Facet</th><th>Status</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Containerisation and packaging</td><td>Verified feasible</td><td>Confirms buildability and dependency isolation.</td></tr>
+          <tr><td>Operational RF detection reliability</td><td>Not verified in real-world flight</td><td>Running the software does not guarantee detection performance in multi-UAV, high-noise or jamming conditions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
