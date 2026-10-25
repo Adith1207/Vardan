@@ -114,7 +114,7 @@
           <tr><td><code>dataset.yaml</code></td><td>Sampling rate 100,000,000 Hz; segment length 2048; random seed 42; default split ratios 0.70 / 0.15 / 0.15; classes no_drone, ar_drone, bebop_drone, phantom_drone</td></tr>
           <tr><td><code>preprocessing.yaml</code></td><td>Standard normalisation (&epsilon; = 1e-8); STFT n_fft 1024, hop 256, win 1024, Hann; wavelet db4 level 4 (symmetric); band-pass denoising 1 kHz &ndash; 50 MHz</td></tr>
           <tr><td><code>training.yaml</code></td><td>Device cuda; 4 workers; checkpoint every 5 epochs, best on min validation loss; default Adam lr 0.001, no scheduler, cross-entropy; per-model settings as in Table 2</td></tr>
-          <tr><td><code>evaluation.yaml</code></td><td>Metrics: accuracy, macro precision/recall/F1, ROC-AUC, confusion matrix; detection threshold 0.5; TinyML limits: model &le; 512 KB, RAM &le; 256 KB, flash &le; 512 KB, latency &le; 50 ms</td></tr>
+          <tr><td><code>evaluation.yaml</code></td><td>Metrics: accuracy, macro precision/recall/F1, ROC-AUC, confusion matrix; detection threshold 0.5; configured model targets (not measured on hardware): model &le; 512 KB, RAM &le; 256 KB, flash &le; 512 KB, latency &le; 50 ms</td></tr>
           <tr><td><code>baseline_preprocessing.yaml</code></td><td>Per-baseline preprocessing specification with source classification of each choice</td></tr>
           <tr><td><code>logging.yaml</code></td><td>Logging configuration</td></tr>
         </tbody>

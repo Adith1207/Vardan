@@ -49,7 +49,7 @@
           <tr><td><a href="#mc1dcnn">MC1DCNN</a></td><td>Allahham et al., IEEE ICIoT 2020</td><td><code>(8, 256)</code> sub-bands</td><td class="num">275,940</td></tr>
           <tr><td><a href="#dscnn">DSCNN</a></td><td>Medaiyese et al., ICON-SONICS 2021</td><td><code>(1, 2048)</code> waveform</td><td class="num">68,228</td></tr>
           <tr><td><a href="#cscnn">Compressive-Sensing CNN</a></td><td>Mo et al., Sensors 2022</td><td><code>(1, 1024)</code> compressed</td><td class="num">1,059,908</td></tr>
-          <tr><td><a href="#mobilenet">MobileNetV3Small</a></td><td>TinyML spectrogram baseline</td><td><code>(1, 65, 61)</code> spectrogram</td><td class="num">11,588</td></tr>
+          <tr><td><a href="#mobilenet">MobileNetV3Small</a></td><td>Compact spectrogram baseline</td><td><code>(1, 65, 61)</code> spectrogram</td><td class="num">11,588</td></tr>
         </tbody>
       </table>
 
@@ -117,8 +117,8 @@ Conv1d(32 -&gt; 64, k=5, s=1, p=2) + ReLU -&gt; MaxPool1d(2)
 Flatten (8,192) -&gt; Linear(8,192 -&gt; 128) + ReLU -&gt; Linear(128 -&gt; 4)
 Trainable parameters: 1,059,908</code></pre>
 
-      <h2 id="mobilenet">5. MobileNetV3Small (TinyML Spectrogram Baseline)</h2>
-      <p>A compact 2-D CNN in the style of MobileNetV3-Small, operating on an STFT log-spectrogram. It represents the smallest model in the comparison and serves as a TinyML reference point.</p>
+      <h2 id="mobilenet">5. MobileNetV3Small (Compact Spectrogram Baseline)</h2>
+      <p>A compact 2-D CNN in the style of MobileNetV3-Small, operating on an STFT log-spectrogram. It is the smallest model in the comparison and serves as a low-parameter reference point.</p>
       <pre><code>Input (1, 65, 61)  STFT: Hann, n_fft=1024, hop=256, 20*log10|STFT|, Z-score
 Conv2d(1 -&gt; 16, 3x3, s=2) + BatchNorm + ReLU
 Depthwise Conv2d(16 -&gt; 32, 3x3, s=2, groups=16) -&gt; Pointwise Conv2d(32 -&gt; 64, 1x1) + BatchNorm + ReLU
