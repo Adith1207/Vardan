@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baseline Models – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html" aria-current="page">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Baseline Models</h1>
+      <p>Five baselines from the RF drone-detection literature were implemented in <code>src/models/baselines.py</code> and <code>src/models/fgcs_faithful_dnn.py</code>. Where the authors released code, the code was treated as the primary reference; discrepancies with the paper text are documented. All models are instantiated by name through <code>get_model()</code> in <code>src/models/model_factory.py</code>.</p>
+
+      <table>
+        <caption>Table 1. Baseline summary.</caption>
+        <thead>
+          <tr><th>Model</th><th>Reference</th><th>Input</th><th class="num">Parameters</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="#fgcs">FGCS2019DNN</a></td><td>Al-Sa&rsquo;d et al., FGCS 2019</td><td><code>(2048,)</code> power spectrum</td><td class="num">295,812 (code) / 565,956 (paper)</td></tr>
+          <tr><td><a href="#mc1dcnn">MC1DCNN</a></td><td>Allahham et al., IEEE ICIoT 2020</td><td><code>(8, 256)</code> sub-bands</td><td class="num">275,940</td></tr>
+          <tr><td><a href="#dscnn">DSCNN</a></td><td>Medaiyese et al., ICON-SONICS 2021</td><td><code>(1, 2048)</code> waveform</td><td class="num">68,228</td></tr>
+          <tr><td><a href="#cscnn">Compressive-Sensing CNN</a></td><td>Mo et al., Sensors 2022</td><td><code>(1, 1024)</code> compressed</td><td class="num">1,059,908</td></tr>
+          <tr><td><a href="#mobilenet">MobileNetV3Small</a></td><td>TinyML spectrogram baseline</td><td><code>(1, 65, 61)</code> spectrogram</td><td class="num">11,588</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="fgcs">1. FGCS2019DNN (Al-Sa&rsquo;d et al., 2019)</h2>
+      <p class="muted">M. F. Al-Sa&rsquo;d et al., &ldquo;RF-based drone detection and identification using deep learning approaches: An initiative towards a large open source drone database,&rdquo; <em>Future Generation Computer Systems</em>, vol. 100, pp. 86&ndash;97, 2019.</p>
+      <p>A fully connected network operating on the 2048-bin stitched L/H power spectrum. The paper text and the authors&rsquo; released code describe different hidden-layer widths; both variants were implemented and the code variant is used as the primary faithful reproduction.</p>
+      <table>
+        <caption>Table 2. FGCS2019DNN variants.</caption>
+        <thead>
+          <tr><th>Variant</th><th>Layers</th><th class="num">Parameters</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Code mode (primary)</td><td>Dense 2048&rarr;128 (ReLU) &rarr; 128&rarr;128 (ReLU) &rarr; 128&rarr;128 (ReLU) &rarr; 128&rarr;4 (Sigmoid)</td><td class="num">295,812</td></tr>
+          <tr><td>Paper mode</td><td>Dense 2048&rarr;256 (ReLU) &rarr; 256&rarr;128 (ReLU) &rarr; 128&rarr;64 (ReLU) &rarr; 64&rarr;4 (Sigmoid)</td><td class="num">565,956</td></tr>
+        </tbody>
+      </table>
+      <dl class="facts">
+        <dt>Loss</dt><dd>Mean squared error on one-hot targets (as in the original code)</dd>
+        <dt>Optimiser</dt><dd>Adam, learning rate 0.001</dd>
+        <dt>Batch size / epochs</dt><dd>10 / 200</dd>
+        <dt>Seed</dt><dd>1</dd>
+        <dt>Training script</dt><dd><code>scripts/train_fgcs_faithful_reproduction.py</code></dd>
+      </dl>
+
+      <h2 id="mc1dcnn">2. MC1DCNN / Baseline1DCNN (Allahham et al., 2020)</h2>
+      <p class="muted">M. S. Allahham et al., &ldquo;Deep Learning for RF-Based Drone Detection and Identification: A Multi-Channel 1-D Convolutional Neural Networks Approach,&rdquo; <em>Proc. IEEE ICIoT</em>, pp. 112&ndash;117, 2020.</p>
+      <p>A multi-channel 1-D CNN in which each input channel is a 10 MHz sub-band of the power spectrum, allowing the convolutional filters to learn band-specific patterns.</p>
+      <pre><code>Input (8, 256)
+Conv1d(8 -&gt; 32, k=11, s=2, p=5) + ReLU -&gt; MaxPool1d(2)
+Conv1d(32 -&gt; 64, k=5, s=1, p=2) + ReLU -&gt; MaxPool1d(2)
+Flatten (2048) -&gt; Linear(2048 -&gt; 128) + ReLU -&gt; Linear(128 -&gt; 4)
+Trainable parameters: 275,940</code></pre>
+      <dl class="facts">
+        <dt>Loss</dt><dd>Cross-entropy</dd>
+        <dt>Optimiser</dt><dd>Adam, learning rate 0.001</dd>
+        <dt>Batch size / epochs</dt><dd>32 / 100</dd>
+        <dt>Seed</dt><dd>1</dd>
+        <dt>Sub-bands</dt><dd>Non-overlapping (the paper discusses both overlapping and non-overlapping filter banks)</dd>
+        <dt>Training script</dt><dd><code>scripts/train_baseline1dcnn_faithful_reproduction.py</code></dd>
+      </dl>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
