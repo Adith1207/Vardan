@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signal Analysis – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html" aria-current="page">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>RF Signal Characterisation</h1>
+      <p>Before designing input representations, the raw DroneRF waveforms were characterised in <code>notebooks/02_DroneRF_Signal_Characterization.ipynb</code>. The analysis covers the time domain, the frequency domain, time&ndash;frequency structure, stationarity, autocorrelation and amplitude distributions, first on exploratory recordings and then on representative recordings selected for each class. The findings motivated the dual time/frequency design of VARDHAN-v3 and the use of per-segment normalisation.</p>
+
+      <div class="toc">
+        <strong>On this page</strong>
+        <ol>
+          <li><a href="#time">Time-domain analysis</a></li>
+          <li><a href="#frequency">Frequency-domain analysis</a></li>
+          <li><a href="#tf">Time&ndash;frequency analysis</a></li>
+          <li><a href="#stationarity">Stationarity</a></li>
+          <li><a href="#autocorrelation">Autocorrelation</a></li>
+          <li><a href="#distribution">Amplitude distributions</a></li>
+          <li><a href="#crossclass">Cross-class comparison</a></li>
+          <li><a href="#implications">Implications for model design</a></li>
+        </ol>
+      </div>
+
+      <h2 id="time">1. Time-Domain Analysis</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/time_domain_exploratory_signals.png" alt="Exploratory time-domain RF signals for each class">
+        <figcaption><strong>Figure 1.</strong> Exploratory time-domain RF waveforms for Background RF, Parrot Bebop, Parrot AR and DJI Phantom recordings.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/time_domain_analysis.png" alt="Time-domain analysis of representative RF signals">
+        <figcaption><strong>Figure 2.</strong> Time-domain analysis of representative recordings, showing burst structure and amplitude envelopes of the drone control and video links.</figcaption>
+      </figure>
+
+      <h2 id="frequency">2. Frequency-Domain Analysis</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/fft_analysis.png" alt="FFT magnitude spectra for each class">
+        <figcaption><strong>Figure 3.</strong> FFT magnitude spectra of the four classes.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/welch_psd_analysis.png" alt="Welch power spectral density of exploratory RF signals">
+        <figcaption><strong>Figure 4.</strong> Welch power spectral density (dB per cycle/sample) of exploratory signals versus normalised frequency. All classes share a strong narrow-band component near 0.125 cycles/sample and a spectral trough near 0.17&ndash;0.21 cycles/sample, illustrating how much of the spectrum is common ambient activity rather than drone-specific.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/representative_welch_psd_analysis.png" alt="Welch PSD of representative recordings">
+        <figcaption><strong>Figure 5.</strong> Welch power spectral density of the representative recordings selected for each class.</figcaption>
+      </figure>
+
+      <h2 id="tf">3. Time&ndash;Frequency Analysis</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/spectrogram_analysis.png" alt="Spectrograms for each class">
+        <figcaption><strong>Figure 6.</strong> Short-time Fourier transform spectrograms of each class, revealing intermittent bursts and frequency-hopping activity.</figcaption>
+      </figure>
+
+      <h2 id="stationarity">4. Stationarity</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/stationarity_rolling_analysis.png" alt="Rolling mean and variance stationarity analysis">
+        <figcaption><strong>Figure 7.</strong> Rolling mean and rolling standard deviation of exploratory signals. Variance changes over time, indicating that the signals are non-stationary across a recording.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/representative_stationarity_analysis.png" alt="Stationarity analysis of representative recordings">
+        <figcaption><strong>Figure 8.</strong> Stationarity analysis of the representative recordings.</figcaption>
+      </figure>
+
+      <h2 id="autocorrelation">5. Autocorrelation</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/autocorrelation_analysis.png" alt="Autocorrelation functions of exploratory signals">
+        <figcaption><strong>Figure 9.</strong> Autocorrelation of exploratory signals, used to estimate the temporal context a model must observe.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/representative_autocorrelation_analysis.png" alt="Autocorrelation of representative recordings">
+        <figcaption><strong>Figure 10.</strong> Autocorrelation of the representative recordings.</figcaption>
+      </figure>
+
+      <h2 id="distribution">6. Amplitude Distributions</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/distribution_analysis.png" alt="Amplitude histograms of exploratory signals">
+        <figcaption><strong>Figure 11.</strong> Amplitude distributions of exploratory signals.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/representative_distribution_analysis.png" alt="Amplitude histograms of representative recordings">
+        <figcaption><strong>Figure 12.</strong> Amplitude distributions of the representative recordings.</figcaption>
+      </figure>
+
+      <h2 id="crossclass">7. Cross-Class Comparison</h2>
+      <figure>
+        <img src="../assets/figures/notebook02/cross_class_comparison.png" alt="Cross-class comparison of RF signal characteristics">
+        <figcaption><strong>Figure 13.</strong> Side-by-side comparison of signal characteristics across classes.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook02/cross_class_statistical_comparison.png" alt="Bar charts of RMS, standard deviation, peak-to-peak amplitude and average power per class">
+        <figcaption><strong>Figure 14.</strong> Cross-class signal statistics for the exploratory recordings.</figcaption>
+      </figure>
+      <table>
+        <caption>Table 1. Exploratory signal statistics per class (values read from Figure 14).</caption>
+        <thead>
+          <tr><th>Class</th><th class="num">RMS amplitude</th><th class="num">Standard deviation</th><th class="num">Peak-to-peak</th><th class="num">Average power</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AR Drone</td><td class="num">2.57</td><td class="num">2.57</td><td class="num">71</td><td class="num">6.63</td></tr>
+          <tr><td>Background RF</td><td class="num">2.72</td><td class="num">2.72</td><td class="num">50</td><td class="num">7.38</td></tr>
+          <tr><td>Bebop drone</td><td class="num">2.46</td><td class="num">2.46</td><td class="num">28</td><td class="num">6.07</td></tr>
+          <tr><td>Phantom drone</td><td class="num">4.19</td><td class="num">4.19</td><td class="num">185</td><td class="num">17.57</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="implications">8. Implications for Model Design</h2>
+      <ul>
+        <li><strong>Amplitude is not a reliable class cue.</strong> The Phantom recording has roughly 2.4&times; the average power of the other classes. A classifier that relies on absolute amplitude would learn receiver gain and distance rather than drone identity, so every model input is detrended and normalised per segment.</li>
+        <li><strong>Shared ambient spectrum.</strong> Strong components common to all classes (Figure 4) mean that discriminative information lies in finer spectral and temporal structure, motivating a dedicated spectral branch with both power and phase (real/imaginary) channels.</li>
+        <li><strong>Non-stationarity and bursts.</strong> Burst-like, time-varying behaviour motivates multi-scale temporal convolutions with a large receptive field and learnable attention pooling instead of global average pooling.</li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
