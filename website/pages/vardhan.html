@@ -83,6 +83,65 @@ Maximum receptive field: 11 samples</code></pre>
         <li><strong>Insufficient capacity</strong> &ndash; 6,692 parameters.</li>
         <li><strong>No explicit spectral information</strong> &ndash; no Fourier, complex or multi-band input.</li>
       </ol>
+
+      <h2 id="v2a">2. VARDHAN-v2A (Intermediate Design)</h2>
+      <p>VARDHAN-v2A (<code>reports/vardhan_v2a_architecture_design.md</code>) addressed each v1 failure while keeping the same single-file <code>(B, 1, 2048)</code> input contract. It introduced three complementary branches, each ending in learnable attention pooling instead of global average pooling, and widened the temporal receptive field from 11 to 1,035 samples (about 94&times;) within a 50k&ndash;150k parameter budget.</p>
+      <pre><code>Input (1, 2048) -&gt; DC detrending
+|
++-- Branch 1: Temporal multi-scale TCN                      (26,097 params)
+|     Stem Conv1d(1 -&gt; 32, k=15, s=2, p=7)
+|     TemporalBlock(32 -&gt; 48, k=7, s=2, d=1)   RF = 27
+|     TemporalBlock(48 -&gt; 64, k=7, s=2, d=2)   RF = 75
+|     TemporalBlock(64 -&gt; 64, k=7, s=2, d=4)   RF = 267
+|     TemporalBlock(64 -&gt; 64, k=7, s=1, d=8)   RF = 1,035
+|     AttentionPool1d(64) -&gt; h_T (64)
+|
++-- Branch 2: Fine-grained spectrum (rFFT power, 1024 bins) (16,913 params)
+|     Stem Conv1d(1 -&gt; 32, k=11, s=2, p=5)
+|     3 x ResidualBlock, dilations {1, 2, 4}
+|     AttentionPool1d(64) -&gt; h_F (64)
+|
++-- Branch 3: Coarse sub-band spectrum (8 x 128 bins)       (13,809 params)
+|     Stem Conv1d(8 -&gt; 32, k=7, s=1, p=3)
+|     2 x ResidualBlock
+|     AttentionPool1d(64) -&gt; h_M (64)
+|
+Fusion head                                                 (12,740 params)
+  Concat [h_T; h_F; h_M] (192) -&gt; Linear(192 -&gt; 64) + BatchNorm + GELU
+  Dropout(0.2) -&gt; Linear(64 -&gt; 4)
+
+Total trainable parameters: 69,559</code></pre>
+      <table>
+        <caption>Table 3. VARDHAN-v2A parameter distribution.</caption>
+        <thead>
+          <tr><th>Component</th><th class="num">Parameters</th><th class="num">Share</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Temporal branch</td><td class="num">26,097</td><td class="num">37.52%</td></tr>
+          <tr><td>Fine-grained spectral branch</td><td class="num">16,913</td><td class="num">24.31%</td></tr>
+          <tr><td>Coarse sub-band branch</td><td class="num">13,809</td><td class="num">19.85%</td></tr>
+          <tr><td>Fusion head</td><td class="num">12,740</td><td class="num">18.32%</td></tr>
+          <tr class="total"><td>Total</td><td class="num">69,559</td><td class="num">100.00%</td></tr>
+        </tbody>
+      </table>
+      <h3>Learnable attention pooling</h3>
+      <p>For a feature sequence <em>h</em><sub>t</sub>, attention weights are computed and used for a weighted sum, letting the network focus on informative bursts:</p>
+      <p class="equation">a<sub>t</sub> = softmax<sub>t</sub>( W<sub>2</sub> &middot; tanh(W<sub>1</sub>h<sub>t</sub> + b<sub>1</sub>) + b<sub>2</sub> ), &nbsp;&nbsp; h<sub>pooled</sub> = &Sigma;<sub>t</sub> a<sub>t</sub> &middot; h<sub>t</sub></p>
+      <p>Each pooling module costs 2,065 parameters (6,195 across the three branches). The temporal receptive field of 1,035 samples (25.88 &micro;s) covers 50.54% of the 2048-sample window.</p>
+      <h3>Planned ablation</h3>
+      <table>
+        <caption>Table 4. Planned VARDHAN-v2A ablation study.</caption>
+        <thead>
+          <tr><th>Experiment</th><th>Model</th><th class="num">Parameters</th><th>Objective</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td>VARDHAN-v1 (time only)</td><td class="num">6,692</td><td>Reference baseline</td></tr>
+          <tr><td>B</td><td>Time + attention</td><td class="num">~30,645</td><td>Isolate temporal improvements</td></tr>
+          <tr><td>C</td><td>Time + FFT</td><td class="num">~51,654</td><td>Measure spectral gain</td></tr>
+          <tr><td>D</td><td>Full VARDHAN-v2A</td><td class="num">69,559</td><td>Multi-representation fusion</td></tr>
+        </tbody>
+      </table>
+      <p>Training scripts: <code>scripts/train_vardhan_v2a.py</code> (strict) and <code>scripts/train_vardhan_v2a_standardized.py</code> (10-fold); structural check: <code>scripts/verify_vardhan_v2a.py</code>.</p>
     </div>
   </main>
 
