@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dataset – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html" aria-current="page">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Dataset: DroneRF</h1>
+
+      <div class="toc">
+        <strong>On this page</strong>
+        <ol>
+          <li><a href="#source">Source and acquisition hardware</a></li>
+          <li><a href="#classes">Class composition</a></li>
+          <li><a href="#bui">Binary Unique Identifier (BUI) labelling</a></li>
+          <li><a href="#exploration">Exploratory figures</a></li>
+          <li><a href="#strict-split">Strict recording-level split</a></li>
+          <li><a href="#band-shift">Phantom receiver band shift</a></li>
+        </ol>
+      </div>
+
+      <h2 id="source">1. Source and Acquisition Hardware</h2>
+      <p>All RF experiments use the public <strong>DroneRF</strong> dataset released by Al-Sa&rsquo;d et al. (2019) and Allahham et al. (2019) on Mendeley Data. Raw RF activity was captured by two synchronised National Instruments USRP-2943R software-defined radios, each observing one half of the 2.4 GHz ISM band used by the drones&rsquo; control and video links.</p>
+      <dl class="facts">
+        <dt>Receivers</dt><dd>2 &times; NI USRP-2943R SDR, time-synchronised</dd>
+        <dt>Sampling rate</dt><dd>F<sub>s</sub> = 100 MS/s, 14-bit ADC</dd>
+        <dt>Total bandwidth</dt><dd>80 MHz (two 40 MHz receivers)</dd>
+        <dt>Lower band (L)</dt><dd>2.40 &ndash; 2.44 GHz, centre 2.422 GHz</dd>
+        <dt>Upper band (H)</dt><dd>2.44 &ndash; 2.48 GHz, centre 2.462 GHz</dd>
+        <dt>Samples per file</dt><dd>10,000,000 raw amplitudes per receiver (one CSV file)</dd>
+        <dt>Files</dt><dd>454 CSV files forming 227 synchronised (L, H) pairs</dd>
+        <dt>Segment length used</dt><dd>2048 samples = 20.48 &micro;s</dd>
+        <dt>Local data paths</dt><dd><code>data/raw/DroneRF/</code> (raw), <code>data/splits/</code> (train/val/test CSVs), <code>data/metadata/dronerf_metadata.csv</code></dd>
+      </dl>
+      <figure>
+        <img src="../assets/figures/report/dataset_organization.png" alt="Organisation of the DroneRF dataset into classes, flight modes and receiver bands">
+        <figcaption><strong>Figure 1.</strong> Organisation of the DroneRF dataset by class, flight mode (BUI) and receiver band.</figcaption>
+      </figure>
+
+      <h2 id="classes">2. Class Composition</h2>
+      <p>The four-class identification task distinguishes ambient background RF from three commercial drones. Under the standard benchmark each synchronised (L, H) receiver pair yields 100 segments, giving 22,700 segments in total.</p>
+      <table>
+        <caption>Table 1. DroneRF class composition used in this project.</caption>
+        <thead>
+          <tr><th class="num">Label</th><th>Class</th><th class="num">Files</th><th class="num">Pairs</th><th class="num">Segments</th><th class="num">Share</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">0</td><td>Background RF</td><td class="num">82</td><td class="num">41</td><td class="num">4,100</td><td class="num">18.06%</td><td>Ambient Wi-Fi, Bluetooth and interference; no drone present</td></tr>
+          <tr><td class="num">1</td><td>Parrot Bebop</td><td class="num">168</td><td class="num">84</td><td class="num">8,400</td><td class="num">37.00%</td><td>Four flight modes: on/connected, hovering, flying, flying with video</td></tr>
+          <tr><td class="num">2</td><td>Parrot AR Drone 2.0</td><td class="num">162</td><td class="num">81</td><td class="num">8,100</td><td class="num">35.68%</td><td>Same four flight modes</td></tr>
+          <tr><td class="num">3</td><td>DJI Phantom 3 Standard</td><td class="num">42</td><td class="num">21</td><td class="num">2,100</td><td class="num">9.25%</td><td>On and connected mode only</td></tr>
+          <tr class="total"><td></td><td>Total</td><td class="num">454</td><td class="num">227</td><td class="num">22,700</td><td class="num">100.00%</td><td></td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Label indices follow the order used by the faithful reproduction and VARDHAN-v3 benchmark scripts (Background, Bebop, AR, Phantom). Note that <code>src/constants.py</code> uses a different internal order (no_drone, ar_drone, bebop_drone, phantom_drone); all tables on this site name classes explicitly.</p>
+
+      <h2 id="bui">3. Binary Unique Identifier (BUI) Labelling</h2>
+      <p>Each DroneRF recording is identified by a five-bit Binary Unique Identifier <em>[b<sub>4</sub> b<sub>3</sub> b<sub>2</sub> b<sub>1</sub> b<sub>0</sub>]</em>. The three most significant bits (msBUI) encode the drone/experiment type and the two least significant bits (lsBUI) encode the operational mode.</p>
+      <table>
+        <caption>Table 2. BUI encoding.</caption>
+        <thead>
+          <tr><th>msBUI</th><th>Meaning</th><th>lsBUI</th><th>Flight mode</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>000</code></td><td>Background RF (no drone)</td><td><code>00</code></td><td>On and connected to the controller</td></tr>
+          <tr><td><code>100</code></td><td>Parrot Bebop</td><td><code>01</code></td><td>Hovering</td></tr>
+          <tr><td><code>101</code></td><td>Parrot AR Drone 2.0</td><td><code>10</code></td><td>Flying without video recording</td></tr>
+          <tr><td><code>110</code></td><td>DJI Phantom 3</td><td><code>11</code></td><td>Flying with video recording</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
