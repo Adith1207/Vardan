@@ -99,6 +99,55 @@
           <tr><td><code>110</code></td><td>DJI Phantom 3</td><td><code>11</code></td><td>Flying with video recording</td></tr>
         </tbody>
       </table>
+
+      <h2 id="exploration">4. Exploratory Figures</h2>
+      <p>The figures below were produced in <code>notebooks/01_DroneRF_Dataset_Exploration.ipynb</code> to verify file inventory, class balance and receiver coverage before any modelling.</p>
+      <figure>
+        <img src="../assets/figures/notebook01/class_distribution.png" alt="Bar chart of the number of files per DroneRF class">
+        <figcaption><strong>Figure 2.</strong> Distribution of recordings across the four classes. Bebop and AR dominate; DJI Phantom is the minority class (9.25% of segments).</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook01/receiver_distribution.png" alt="Distribution of files across the L and H receivers">
+        <figcaption><strong>Figure 3.</strong> Distribution of files across the lower (L) and upper (H) band receivers.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook01/acquisition_identifier_distribution.png" alt="Distribution of BUI acquisition identifiers">
+        <figcaption><strong>Figure 4.</strong> Distribution of BUI acquisition identifiers (drone type and flight mode).</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook01/example_rf_signal.png" alt="Example raw RF signal from DroneRF">
+        <figcaption><strong>Figure 5.</strong> Example raw RF amplitude trace from a single DroneRF recording.</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/figures/notebook01/representative_rf_signal.png" alt="Representative RF signals for each class">
+        <figcaption><strong>Figure 6.</strong> Representative RF signals for each class.</figcaption>
+      </figure>
+
+      <h2 id="strict-split">5. Strict Recording-Level Split</h2>
+      <p>To measure true cross-recording generalisation, the 454 files were partitioned by recording session rather than by segment. The 23 distinct recording sessions are assigned exclusively to one split, so no recording &ndash; and therefore no segment from it &ndash; appears in more than one split. Split files are stored in <code>data/splits/train.csv</code>, <code>val.csv</code> and <code>test.csv</code>, each row carrying a <code>recording_id</code> used to enforce isolation.</p>
+      <table>
+        <caption>Table 3. Strict recording-level split (file counts per class).</caption>
+        <thead>
+          <tr><th>Split</th><th class="num">Sessions</th><th class="num">Files</th><th class="num">Share</th><th class="num">Background</th><th class="num">Bebop</th><th class="num">AR</th><th class="num">Phantom</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Training</td><td class="num">15</td><td class="num">308</td><td class="num">67.8%</td><td class="num">41</td><td class="num">126</td><td class="num">120</td><td class="num">21</td></tr>
+          <tr><td>Validation</td><td class="num">4</td><td class="num">73</td><td class="num">16.1%</td><td class="num">21</td><td class="num">21</td><td class="num">21</td><td class="num">10</td></tr>
+          <tr><td>Test</td><td class="num">4</td><td class="num">73</td><td class="num">16.1%</td><td class="num">20</td><td class="num">21</td><td class="num">21</td><td class="num">11</td></tr>
+          <tr class="total"><td>Total</td><td class="num">23</td><td class="num">454</td><td class="num">100%</td><td class="num">82</td><td class="num">168</td><td class="num">162</td><td class="num">42</td></tr>
+        </tbody>
+      </table>
+      <p>Recording overlap and file overlap between splits are both zero (verified in <code>results/vardhan_v3_strict_per_segment/aggregate_metrics.json</code>). With 50 segments sampled per file, the test split contains 3,650 segments: 1,000 Background, 1,050 Bebop, 1,050 AR and 550 Phantom.</p>
+      <figure>
+        <img src="../assets/figures/report/strict_split.png" alt="Stacked bar chart of the strict recording-level split by class">
+        <figcaption><strong>Figure 7.</strong> Strict recording-level partitioning: 308 training files (15 recordings), 73 validation files (4 recordings) and 73 test files (4 recordings) with zero recording overlap.</figcaption>
+      </figure>
+
+      <h2 id="band-shift">6. Phantom Receiver Band Shift</h2>
+      <div class="note warning">
+        <p><strong>Important.</strong> In the strict split, all DJI Phantom training files come from the upper-band receiver (H, centre 2.462 GHz), while all Phantom validation and test files come from the lower-band receiver (L, centre 2.422 GHz). A model must therefore recognise the Phantom from a frequency band it has never observed for that class. This is a genuine out-of-distribution shift that a single 40 MHz file cannot bridge, and it explains much of the near-zero Phantom recall under the strict protocol.</p>
+      </div>
+      <p>The distribution diagnostics, including this band-shift check, can be regenerated with <code>python scripts/analyze_data_distribution.py --splits_dir data/splits --raw_data_dir data/raw/DroneRF</code>.</p>
     </div>
   </main>
 
