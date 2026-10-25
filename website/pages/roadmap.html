@@ -37,7 +37,7 @@
   <main>
     <div class="container">
       <h1>Roadmap</h1>
-      <p>The RF module is the first of three sensing modalities planned for VARDAN. The remaining phases extend the system to acoustic and visual detection, fuse the three modalities adaptively, and optimise the complete pipeline for embedded deployment.</p>
+      <p>VARDAN is scoped to RF-only research. The remaining work focuses on completing the benchmarks, testing robustness, and closing the gap between segment-level and recording-level performance documented on the <a href="results.html#gap">Results</a> page.</p>
 
       <table>
         <caption>Table 1. Project phases.</caption>
@@ -47,60 +47,46 @@
         <tbody>
           <tr><td>1</td><td>Repository scaffolding, configuration and path resolution</td><td>Completed</td><td><code>src/config.py</code>, <code>src/utils/paths.py</code>, <code>configs/</code></td></tr>
           <tr><td>2</td><td>RF preprocessing, baseline reproduction and VARDHAN RF models</td><td>In progress</td><td>Notebooks 01&ndash;05, <code>src/models/</code></td></tr>
-          <tr><td>3</td><td>Acoustic signal classifier</td><td>Planned</td><td><code>notebooks/06_Acoustic_Module.ipynb</code></td></tr>
-          <tr><td>4</td><td>Vision object detector</td><td>Planned</td><td><code>notebooks/07_Vision_Module.ipynb</code></td></tr>
-          <tr><td>5</td><td>Adaptive multi-modal fusion</td><td>Planned (engine scaffolded)</td><td><code>notebooks/08_Multimodal_Fusion.ipynb</code>, <code>src/fusion/fusion.py</code></td></tr>
-          <tr><td>6</td><td>Edge TinyML optimisation and deployment</td><td>Planned</td><td><code>src/benchmark/bench.py</code>, <code>notebooks/09_Experiments.ipynb</code></td></tr>
+          <tr><td>3</td><td>Remaining baseline benchmarks, ablations and RF robustness experiments</td><td>Planned</td><td><code>notebooks/09_Experiments.ipynb</code>, <code>scripts/</code></td></tr>
+          <tr><td>4</td><td>Session-invariant training to close the recording-level generalisation gap</td><td>Planned</td><td><code>src/models/</code>, <code>src/data/</code></td></tr>
         </tbody>
       </table>
 
-      <h2 id="rf-next">1. Next Steps for the RF Module</h2>
+      <h2 id="benchmarks">1. Complete the Benchmarks</h2>
       <ul>
-        <li>Close the generalisation gap with session-invariant training: cross-recording augmentation, domain-adversarial objectives, and training on both receiver bands to remove the Phantom band shift.</li>
-        <li>Complete the 10-fold benchmark for DSCNN, CS-CNN and MobileNetV3Small, and run the planned VARDHAN-v2A ablation (Experiments A&ndash;D).</li>
+        <li>Run the 10-fold segment-level benchmark for DSCNN, CS-CNN and MobileNetV3Small.</li>
+        <li>Run the planned VARDHAN-v2A ablation (Experiments A&ndash;D) to measure the contribution of each branch.</li>
         <li>Re-run the historical strict baselines with the same 50 segments/file and training budget as VARDHAN-v3 for a controlled comparison.</li>
-        <li>Evaluate open-set rejection of unknown drones and confidence calibration.</li>
       </ul>
 
-      <h2 id="acoustic">2. Acoustic Module (Phase 3)</h2>
+      <h2 id="generalisation">2. Close the Generalisation Gap</h2>
       <ul>
-        <li>Extract audio spectrograms (STFT) and Mel-frequency cepstral coefficients.</li>
-        <li>Train a lightweight CNN on rotor and blade-passing harmonics for near-field detection.</li>
-        <li>Feature-extraction entry point: <code>extract_acoustic_features()</code> in <code>src/features/extraction.py</code>.</li>
+        <li>Session-invariant training: cross-recording augmentation and domain-adversarial objectives.</li>
+        <li>Train on both receiver bands (L and H) so the Phantom class is not tied to a single band.</li>
+        <li>Investigate longer or stitched L+H input windows for the VARDHAN models.</li>
       </ul>
 
-      <h2 id="vision">3. Vision Module (Phase 4)</h2>
+      <h2 id="robustness">3. RF Robustness Experiments</h2>
+      <p><code>notebooks/09_Experiments.ipynb</code> is reserved for RF robustness experiments, such as additive noise and interference. It currently contains placeholders only, and no robustness results are reported.</p>
+
+      <h2 id="open-set">4. Open-Set Evaluation</h2>
       <ul>
-        <li>Optimise a compact detector (YOLOv8-nano or EfficientDet) for small UAV bounding boxes.</li>
-        <li>Benchmark latency on embedded hardware.</li>
-        <li>Address variable lighting and weather conditions.</li>
+        <li>Evaluate rejection of unknown drones and background sources not seen in training.</li>
+        <li>Measure confidence calibration of the classifiers.</li>
       </ul>
 
-      <h2 id="fusion">4. Adaptive Multi-Modal Fusion (Phase 5)</h2>
-      <p>A late-fusion engine, <code>AdaptiveFusion</code>, is already implemented in <code>src/fusion/fusion.py</code>. It combines per-class probability vectors from the RF, acoustic and vision models in two ways:</p>
-      <ul>
-        <li><strong>Static weighting</strong> &ndash; default weights RF 0.4, acoustic 0.3, vision 0.3 (normalised to sum to 1).</li>
-        <li><strong>Entropy-based dynamic weighting</strong> &ndash; each modality&rsquo;s Shannon entropy <em>H</em> = &minus;&Sigma; <em>p</em> log <em>p</em> is computed and weights are set inversely proportional to <em>H</em>, so a confident sensor dominates and a degraded or uncertain sensor (e.g. a camera in fog) is down-weighted automatically.</li>
-      </ul>
-      <p>Cross-modal attention is a planned extension.</p>
-
-      <h2 id="edge">5. Edge TinyML Deployment (Phase 6)</h2>
-      <ul>
-        <li>Export models to ONNX and optimise with TensorRT / TFLite.</li>
-        <li>Target platforms: NVIDIA Jetson Orin, Raspberry Pi 5 and ARM Cortex-M microcontrollers.</li>
-        <li>Evaluate post-training and quantisation-aware INT8 quantisation.</li>
-        <li>Measure latency, peak memory and power using <code>benchmark_inference_latency()</code> and <code>profile_model_footprint()</code> in <code>src/benchmark/bench.py</code>, plus hardware power monitoring.</li>
-      </ul>
+      <h2 id="profiling">5. Software Profiling</h2>
+      <p>Model size and speed are measured in software with <code>profile_model_footprint()</code> and <code>benchmark_inference_latency()</code> in <code>src/benchmark/bench.py</code>. These figures describe the development machine they are run on. Physical deployment on embedded hardware is outside the scope of this project, and no hardware measurements have been made.</p>
       <table>
-        <caption>Table 2. TinyML deployment constraints (<code>configs/evaluation.yaml</code>).</caption>
+        <caption>Table 2. Configured model targets (<code>configs/evaluation.yaml</code>) and VARDHAN-v3 status.</caption>
         <thead>
-          <tr><th>Constraint</th><th class="num">Limit</th><th>VARDHAN-v3 status</th></tr>
+          <tr><th>Target</th><th class="num">Value</th><th>VARDHAN-v3 status</th></tr>
         </thead>
         <tbody>
-          <tr><td>Model size</td><td class="num">512 KB</td><td>&asymp; 479 KB FP32 weights (within limit)</td></tr>
-          <tr><td>RAM usage</td><td class="num">256 KB</td><td>Not yet measured</td></tr>
-          <tr><td>Flash usage</td><td class="num">512 KB</td><td>Not yet measured</td></tr>
-          <tr><td>Inference latency</td><td class="num">50 ms</td><td>Not yet measured (target &lt; 5 ms)</td></tr>
+          <tr><td>Model size</td><td class="num">512 KB</td><td>&asymp; 479 KB FP32 weights (within target)</td></tr>
+          <tr><td>RAM usage</td><td class="num">256 KB</td><td>Not measured</td></tr>
+          <tr><td>Flash usage</td><td class="num">512 KB</td><td>Not measured</td></tr>
+          <tr><td>Inference latency</td><td class="num">50 ms</td><td>Not measured on target hardware</td></tr>
         </tbody>
       </table>
     </div>
