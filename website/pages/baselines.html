@@ -90,6 +90,60 @@ Trainable parameters: 275,940</code></pre>
         <dt>Sub-bands</dt><dd>Non-overlapping (the paper discusses both overlapping and non-overlapping filter banks)</dd>
         <dt>Training script</dt><dd><code>scripts/train_baseline1dcnn_faithful_reproduction.py</code></dd>
       </dl>
+
+      <h2 id="dscnn">3. DSCNN &ndash; Depthwise Separable CNN (Medaiyese et al., 2021)</h2>
+      <p class="muted">O. Medaiyese, A. Syed and A. P. Lauf, &ldquo;Machine Learning Framework for RF-Based Drone Detection and Identification System,&rdquo; <em>Proc. ICON-SONICS</em>, pp. 1&ndash;6, 2021.</p>
+      <p>A lightweight network that operates directly on the normalised raw waveform, using a depthwise separable convolution to reduce parameters and computation.</p>
+      <pre><code>Input (1, 2048)
+Conv1d(1 -&gt; 32, k=11, s=2, p=5) + ReLU
+Depthwise Conv1d(32 -&gt; 32, k=5, groups=32) -&gt; Pointwise Conv1d(32 -&gt; 64, k=1) + ReLU
+MaxPool1d(4) -&gt; Flatten (16,384) -&gt; Linear(16,384 -&gt; 4)
+Trainable parameters: 68,228</code></pre>
+      <dl class="facts">
+        <dt>Optimiser</dt><dd>Adam, learning rate 0.001</dd>
+        <dt>Batch size / epochs</dt><dd>32 / 100</dd>
+      </dl>
+
+      <h2 id="cscnn">4. Compressive-Sensing CNN (Mo et al., 2022)</h2>
+      <p class="muted">Y. Mo, J. Huang and G. Qian, &ldquo;Deep Learning Approach to UAV Detection and Classification by Using Compressively Sensed RF Signal,&rdquo; <em>Sensors</em>, vol. 22, no. 8, 3072, 2022.</p>
+      <p>The waveform is first compressed by a random sensing matrix and the classifier operates directly on the compressed measurements, reducing the data rate that must be acquired and processed.</p>
+      <dl class="facts">
+        <dt>Sensing</dt><dd><em>y</em> = &Phi;<em>x</em>, compression ratio 0.5, <em>M</em> = 1024 measurements</dd>
+        <dt>Sensing matrix</dt><dd>Normalised Gaussian, &Phi; ~ &#119977;(0, 1/<em>M</em>) (implemented in <code>src/preprocessing/compression.py</code>; the paper also evaluates Bernoulli and Hadamard matrices)</dd>
+      </dl>
+      <pre><code>Input (1, 1024)
+Conv1d(1 -&gt; 32, k=11, s=2, p=5) + ReLU -&gt; MaxPool1d(2)
+Conv1d(32 -&gt; 64, k=5, s=1, p=2) + ReLU -&gt; MaxPool1d(2)
+Flatten (8,192) -&gt; Linear(8,192 -&gt; 128) + ReLU -&gt; Linear(128 -&gt; 4)
+Trainable parameters: 1,059,908</code></pre>
+
+      <h2 id="mobilenet">5. MobileNetV3Small (TinyML Spectrogram Baseline)</h2>
+      <p>A compact 2-D CNN in the style of MobileNetV3-Small, operating on an STFT log-spectrogram. It represents the smallest model in the comparison and serves as a TinyML reference point.</p>
+      <pre><code>Input (1, 65, 61)  STFT: Hann, n_fft=1024, hop=256, 20*log10|STFT|, Z-score
+Conv2d(1 -&gt; 16, 3x3, s=2) + BatchNorm + ReLU
+Depthwise Conv2d(16 -&gt; 32, 3x3, s=2, groups=16) -&gt; Pointwise Conv2d(32 -&gt; 64, 1x1) + BatchNorm + ReLU
+AdaptiveAvgPool2d(1) -&gt; Linear(64 -&gt; 128) + ReLU -&gt; Linear(128 -&gt; 4)
+Trainable parameters: 11,588</code></pre>
+      <dl class="facts">
+        <dt>Optimiser</dt><dd>Adam, learning rate 0.001</dd>
+        <dt>Batch size / epochs</dt><dd>32 / 100</dd>
+      </dl>
+
+      <h2>6. Reproduction Status</h2>
+      <table>
+        <caption>Table 3. Benchmarks completed per baseline.</caption>
+        <thead>
+          <tr><th>Model</th><th>10-fold segment-level</th><th>Strict recording-level (historical, 5 segments/file)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FGCS2019DNN</td><td>Completed &ndash; 84.52% &plusmn; 0.73%</td><td>28.22% (as reported)</td></tr>
+          <tr><td>MC1DCNN</td><td>Completed &ndash; 65.01% &plusmn; 5.35%</td><td>28.77% (as reported)</td></tr>
+          <tr><td>DSCNN</td><td>Not run (compute constraints)</td><td>26.58% (as reported)</td></tr>
+          <tr><td>Compressive-Sensing CNN</td><td>Not run (compute constraints)</td><td>28.77% (as reported)</td></tr>
+          <tr><td>MobileNetV3Small</td><td>Not run (compute constraints)</td><td>&ndash;</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">&ldquo;As reported&rdquo; values come from the project reports (<code>reports/VARDHAN_IEEE_Report.md</code>); the corresponding raw result files are not included in <code>results/</code>. Full details are on the <a href="results.html">Results</a> page.</p>
     </div>
   </main>
 
