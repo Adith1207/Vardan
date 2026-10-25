@@ -42,7 +42,7 @@
       <h2>Abstract</h2>
       <p class="lead">The rapid proliferation of low-cost commercial unmanned aerial vehicles (UAVs) has created new security threats from unauthorised drone operations. Conventional counter-UAS sensors &ndash; radar, optical/infrared cameras and acoustic arrays &ndash; are limited by line-of-sight requirements, weather susceptibility and cost. Passive radio-frequency (RF) sensing offers a resilient alternative, because nearly every commercial drone continuously exchanges control and video telemetry with its operator.</p>
       <p>VARDAN is a research project that builds the RF sensing core of a multi-modal, edge-deployable counter-UAS system. The work faithfully reproduces published deep-learning baselines on the public DroneRF dataset, re-evaluates them under a strict recording-level protocol with zero session leakage, and proposes <strong>VARDHAN-v3</strong>, a lightweight (119,806-parameter) dual-domain neural network that jointly processes the raw time-domain waveform and a three-channel Fourier representation of each 2048-sample RF segment.</p>
-      <p>The central finding is a large generalisation gap: models that achieve 65&ndash;85% accuracy under the standard segment-level 10-fold cross-validation fall to 25&ndash;29% when tested on recording sessions never seen during training. The project documents this gap, its causes, and the evidence still required before edge deployment.</p>
+      <p>The central finding is a large generalisation gap: models that achieve 65&ndash;85% accuracy under the standard segment-level 10-fold cross-validation fall to 24.8&ndash;28.8% when tested on recording sessions never seen during training. The project documents this gap, its causes, and the evidence still required before edge deployment.</p>
 
       <h2>Key Figures at a Glance</h2>
       <table>
@@ -51,7 +51,7 @@
           <tr><th scope="row">Dataset</th><td>DroneRF (Al-Sa&rsquo;d et al., 2019) &ndash; 454 CSV files, 227 synchronised L/H receiver pairs</td></tr>
           <tr><th scope="row">Classes</th><td>4: Background RF, Parrot Bebop, Parrot AR Drone 2.0, DJI Phantom 3</td></tr>
           <tr><th scope="row">Segments</th><td>22,700 (100 per receiver pair), 2048 samples each (20.48 &micro;s at 100 MS/s)</td></tr>
-          <tr><th scope="row">Proposed model</th><td>VARDHAN-v3 &ndash; 119,806 trainable parameters, 11.81 M MACs, 0.459 MB (FP32)</td></tr>
+          <tr><th scope="row">Proposed model</th><td>VARDHAN-v3 &ndash; 119,806 trainable parameters, 11.81 M MACs, &asymp; 479 KB FP32 weights</td></tr>
           <tr><th scope="row">10-fold segment-level accuracy</th><td>VARDHAN-v3 71.57% &plusmn; 1.25% &middot; FGCS2019DNN 84.52% &plusmn; 0.73% &middot; MC1DCNN 65.01% &plusmn; 5.35%</td></tr>
           <tr><th scope="row">Strict recording-level accuracy</th><td>VARDHAN-v3 24.79% (macro-F1 0.2005) on 4 unseen recording sessions</td></tr>
           <tr><th scope="row">Status</th><td>Phase 2 (RF preprocessing and baselines) in progress; acoustic, vision, fusion and edge phases planned</td></tr>

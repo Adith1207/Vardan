@@ -109,7 +109,7 @@ Trainable parameters: 68,228</code></pre>
       <p>The waveform is first compressed by a random sensing matrix and the classifier operates directly on the compressed measurements, reducing the data rate that must be acquired and processed.</p>
       <dl class="facts">
         <dt>Sensing</dt><dd><em>y</em> = &Phi;<em>x</em>, compression ratio 0.5, <em>M</em> = 1024 measurements</dd>
-        <dt>Sensing matrix</dt><dd>Normalised Gaussian, &Phi; ~ &#119977;(0, 1/<em>M</em>) (implemented in <code>src/preprocessing/compression.py</code>; the paper also evaluates Bernoulli and Hadamard matrices)</dd>
+        <dt>Sensing matrix</dt><dd>Deterministic Gaussian random matrix with each row normalised to unit L2 norm (implemented in <code>src/preprocessing/compression.py</code>; the original work uses random demodulation, and its code was not released)</dd>
       </dl>
       <pre><code>Input (1, 1024)
 Conv1d(1 -&gt; 32, k=11, s=2, p=5) + ReLU -&gt; MaxPool1d(2)
@@ -140,7 +140,7 @@ Trainable parameters: 11,588</code></pre>
           <tr><td>MC1DCNN</td><td>Completed &ndash; 65.01% &plusmn; 5.35%</td><td>28.77% (as reported)</td></tr>
           <tr><td>DSCNN</td><td>Not run (compute constraints)</td><td>26.58% (as reported)</td></tr>
           <tr><td>Compressive-Sensing CNN</td><td>Not run (compute constraints)</td><td>28.77% (as reported)</td></tr>
-          <tr><td>MobileNetV3Small</td><td>Not run (compute constraints)</td><td>&ndash;</td></tr>
+          <tr><td>MobileNetV3Small</td><td>Not run (compute constraints)</td><td>28.77% (as reported)</td></tr>
         </tbody>
       </table>
       <p class="muted">&ldquo;As reported&rdquo; values come from the project reports (<code>reports/VARDHAN_IEEE_Report.md</code>); the corresponding raw result files are not included in <code>results/</code>. Full details are on the <a href="results.html">Results</a> page.</p>
