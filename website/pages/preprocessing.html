@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preprocessing – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html" aria-current="page">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>Signal Preprocessing</h1>
+      <p>Each model in the project consumes a different input representation. This page documents the common per-segment pipeline, the faithful re-implementation of the original FGCS 2019 feature extraction, and the model-specific representations. Implementations live in <code>src/preprocessing/</code> and <code>src/data/</code>.</p>
+
+      <div class="toc">
+        <strong>On this page</strong>
+        <ol>
+          <li><a href="#segmentation">Segmentation</a></li>
+          <li><a href="#generic">Generic per-segment pipeline</a></li>
+          <li><a href="#fgcs">Faithful FGCS 2019 feature pipeline</a></li>
+          <li><a href="#per-model">Model-specific input representations</a></li>
+          <li><a href="#vardhan-spectral">VARDHAN-v3 three-channel spectral representation</a></li>
+          <li><a href="#leakage">Leakage controls</a></li>
+        </ol>
+      </div>
+
+      <h2 id="segmentation">1. Segmentation</h2>
+      <p>Each DroneRF CSV file contains 10,000,000 samples. For the standard benchmark, every file is divided into 100 non-overlapping blocks of 100,000 samples, giving 100 segments per synchronised (L, H) pair and 22,700 segments overall. Waveform-based models (DSCNN, VARDHAN) take the first 2048 samples of each 100,000-sample block (offset <em>i</em> &times; 100,000), i.e. a 20.48 &micro;s window at 100 MS/s.</p>
+
+      <h2 id="generic">2. Generic Per-Segment Pipeline</h2>
+      <p>The following operations are applied independently to every 2048-sample segment <em>x</em>[<em>n</em>], <em>n</em> = 0 &hellip; <em>N</em>&minus;1, <em>N</em> = 2048.</p>
+      <h3>Step 1 &ndash; DC mean detrending</h3>
+      <p class="equation">x<sub>d</sub>[n] = x[n] &minus; (1/N) &Sigma;<sub>n</sub> x[n]</p>
+      <h3>Step 2 &ndash; Per-segment normalisation</h3>
+      <p class="equation">x<sub>norm</sub>[n] = x<sub>d</sub>[n] / &radic;( (1/N) &Sigma;<sub>n</sub> x<sub>d</sub>[n]<sup>2</sup> + 10<sup>&minus;8</sup> )</p>
+      <h3>Step 3 &ndash; Real fast Fourier transform</h3>
+      <p class="equation">X[k] = &Sigma;<sub>n</sub> x<sub>norm</sub>[n] &middot; exp(&minus;j2&pi;kn/N), &nbsp; k = 0, 1, &hellip;, 1024</p>
+      <p>The rFFT yields 1025 complex bins from DC to Nyquist (50 MHz at F<sub>s</sub> = 100 MS/s).</p>
+      <h3>Step 4 &ndash; DC bin removal</h3>
+      <p>The DC bin (<em>k</em> = 0) is dropped and the 1024 positive-frequency bins <em>k</em> = 1 &hellip; 1024 are retained.</p>
+
+      <h2 id="fgcs">3. Faithful FGCS 2019 Feature Pipeline</h2>
+      <p>To reproduce Al-Sa&rsquo;d et al. (2019) exactly, the original MATLAB scripts <code>Main_1_Data_aggregation.m</code> and <code>Main_2_Data_labeling.m</code> were re-implemented in <code>src/preprocessing/fgcs_faithful.py</code> (optionally JIT-accelerated with Numba for CSV parsing).</p>
+      <ol>
+        <li><strong>Synchronised L/H pairing</strong> &ndash; pair the lower-band (2.40&ndash;2.44 GHz) and upper-band (2.44&ndash;2.48 GHz) files of each recording.</li>
+        <li><strong>100,000-sample segmentation</strong> &ndash; split each 10,000,000-sample file into 100 non-overlapping segments.</li>
+        <li><strong>DC removal</strong> &ndash; subtract the segment mean from both the L and H segments.</li>
+        <li><strong>2048-point FFT and shift</strong> &ndash; apply <code>fftshift</code> and keep the positive-frequency half (1024 bins per band).</li>
+        <li><strong>Q = 10 boundary matching</strong> &ndash; scale the H spectrum by <em>c</em> = mean(xf[end&minus;9:end]) / mean(yf[1:10]) and concatenate [xf ; c&middot;yf], giving 2048 bins spanning 2.40&ndash;2.48 GHz.</li>
+        <li><strong>Power conversion</strong> &ndash; square the stitched magnitude spectrum.</li>
+        <li><strong>Global normalisation</strong> &ndash; divide by the global maximum (per-BUI mode max scaling, as in <code>Main_2_Data_labeling.m</code>).</li>
+        <li><strong>Class ordering</strong> &ndash; 0 Background (BUI 00000), 1 Bebop (100xx), 2 AR (101xx), 3 Phantom (11000).</li>
+      </ol>
+      <p>The MC1DCNN reproduction reuses the same spectrum and divides the 2048 bins into 8 uniform sub-bands of 10 MHz each, producing an (8, 256) input.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
