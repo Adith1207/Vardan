@@ -47,13 +47,14 @@
   experiments/      logs/, reports/, runs/
   figures/          notebook-generated figures
   models/           baselines/, checkpoints/, vardhan/
-  notebooks/        01-09 Jupyter notebooks
+  notebooks/        RF notebooks 01-05 and planned robustness notebook 09
   reports/          IEEE report (Markdown and LaTeX), audits, fact check, evidence gaps, bibliography
   results/          metrics, confusion matrices and run configs for every benchmark
   scripts/          training, verification and analysis entry points
   src/              Python package (see below)
   tests/            pytest suite
   website/          this site
+  Readme.md         RF-only project overview, results and commands
   environment.yml   conda environment "vardan"
   requirements.txt  pip requirements
   pyproject.toml    package metadata (Python &gt;= 3.11)</code></pre>
@@ -76,13 +77,11 @@
           <tr><td><code>data/fgcs_faithful_loader.py</code></td><td><code>FGCSFaithfulLazyDataset</code></td><td>227 L/H pairs &times; 100 segments for the faithful benchmark</td></tr>
           <tr><td><code>data/create_splits.py</code>, <code>data/create_diagnostic_segment_splits.py</code></td><td>&ndash;</td><td>Strict recording-level and diagnostic split generation</td></tr>
           <tr><td><code>preprocessing/fgcs_faithful.py</code></td><td>&ndash;</td><td>Re-implementation of the original MATLAB feature pipeline</td></tr>
-          <tr><td><code>preprocessing/fft.py</code>, <code>spectrogram.py</code>, <code>signals.py</code></td><td><code>FFTProcessor</code>, <code>SpectrogramProcessor</code>, <code>compute_rfft()</code>, <code>compute_stft()</code></td><td>Spectral and time&ndash;frequency transforms</td></tr>
+          <tr><td><code>preprocessing/fft.py</code>, <code>spectrogram.py</code>, <code>signals.py</code></td><td><code>FFTProcessor</code>, <code>SpectrogramProcessor</code>, <code>compute_rfft()</code>, <code>compute_stft()</code></td><td>Spectral and time&ndash;frequency transforms (<code>signals.py</code> provides a standalone STFT; the package-level <code>compute_stft</code> comes from <code>spectrogram.py</code>)</td></tr>
           <tr><td><code>preprocessing/normalization.py</code></td><td><code>SignalNormalizer</code></td><td>max, min&ndash;max, Z-score and identity normalisation</td></tr>
           <tr><td><code>preprocessing/channelization.py</code>, <code>compression.py</code></td><td>&ndash;</td><td>Sub-band channelisation (MC1DCNN) and compressive sensing (CS-CNN)</td></tr>
           <tr><td><code>preprocessing/raw_loader.py</code>, <code>pipeline.py</code></td><td><code>DroneRFLoader</code>, <code>DroneRFPreprocessor</code></td><td>CSV loading and unified preprocessing interface</td></tr>
           <tr><td><code>evaluation/metrics.py</code></td><td><code>calculate_metrics()</code>, <code>generate_confusion_matrix()</code></td><td>Accuracy, precision, recall, F1, confusion matrix</td></tr>
-          <tr><td><code>fusion/fusion.py</code></td><td><code>AdaptiveFusion</code></td><td>Static and entropy-weighted late fusion</td></tr>
-          <tr><td><code>features/extraction.py</code></td><td><code>extract_rf_features()</code>, <code>extract_acoustic_features()</code></td><td>Hand-crafted feature extraction</td></tr>
           <tr><td><code>benchmark/bench.py</code></td><td><code>benchmark_inference_latency()</code>, <code>profile_model_footprint()</code></td><td>Latency and footprint profiling</td></tr>
           <tr><td><code>visualization/plots.py</code></td><td>&ndash;</td><td>Plotting utilities</td></tr>
           <tr><td><code>config.py</code>, <code>constants.py</code>, <code>utils/</code></td><td>&ndash;</td><td>Paths, sampling constants, label maps and helpers</td></tr>
@@ -121,10 +120,7 @@
           <tr><td><code>03_Baseline_Model_Reproduction.ipynb</code></td><td>Baseline reproduction</td></tr>
           <tr><td><code>04_Benchmarking.ipynb</code></td><td>Benchmark comparison</td></tr>
           <tr><td><code>05_Vardhan_RF_Module.ipynb</code></td><td>VARDHAN RF module</td></tr>
-          <tr><td><code>06_Acoustic_Module.ipynb</code></td><td>Acoustic module (planned)</td></tr>
-          <tr><td><code>07_Vision_Module.ipynb</code></td><td>Vision module (planned)</td></tr>
-          <tr><td><code>08_Multimodal_Fusion.ipynb</code></td><td>Multi-modal fusion (planned)</td></tr>
-          <tr><td><code>09_Experiments.ipynb</code></td><td>Experiment tracking</td></tr>
+          <tr><td><code>09_Experiments.ipynb</code></td><td>RF robustness experiments (planned; placeholders only)</td></tr>
         </tbody>
       </table>
 
@@ -142,9 +138,9 @@ pip install -r requirements.txt</code></pre>
           <tr><th>Category</th><th>Packages</th></tr>
         </thead>
         <tbody>
-          <tr><td>Deep learning</td><td>torch &ge; 2.0.0, torchvision &ge; 0.15.0</td></tr>
+          <tr><td>Deep learning</td><td>torch &ge; 2.0.0</td></tr>
           <tr><td>Scientific computing</td><td>numpy &ge; 1.24.0, scipy &ge; 1.10.0, pandas &ge; 2.0.0, h5py &ge; 3.8.0, scikit-learn &ge; 1.2.0</td></tr>
-          <tr><td>Signal processing</td><td>librosa &ge; 0.10.0 (optional: numba for faster CSV parsing)</td></tr>
+          <tr><td>Signal processing</td><td>Optional: numba for faster CSV parsing</td></tr>
           <tr><td>Utilities</td><td>matplotlib &ge; 3.7.0, tqdm &ge; 4.65.0, pyyaml &ge; 6.0</td></tr>
           <tr><td>Development</td><td>pytest &ge; 7.3.0, ipykernel &ge; 6.23.0, black &ge; 23.3.0, ruff &ge; 0.0.270</td></tr>
         </tbody>
@@ -163,7 +159,7 @@ python scripts/train_vardhan_v3.py --normalization per_segment --epochs 100 --sa
 # Quick check without the dataset
 python scripts/train_vardhan_v3.py --mock --epochs 1</code></pre>
       <h3>Tests</h3>
-      <p>The <code>tests/</code> directory contains 15 pytest modules covering the faithful pipelines, input representations, split diagnostics, trainer checkpointing, configuration loading and the VARDHAN-v2A / v3 models and training scripts. Run with <code>pytest tests/</code>.</p>
+      <p>The <code>tests/</code> directory contains 16 pytest modules covering the faithful pipelines, input representations, the STFT implementation, split diagnostics, trainer checkpointing, configuration loading and the VARDHAN-v2A / v3 models and training scripts. Run with <code>pytest tests/</code>.</p>
     </div>
   </main>
 
