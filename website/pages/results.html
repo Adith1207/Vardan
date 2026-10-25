@@ -132,6 +132,101 @@
         </tbody>
       </table>
       <p class="muted">Total VARDHAN-v3 10-fold run time: 2,265.2 s on an NVIDIA Tesla T4. Mean test loss 0.7737 &plusmn; 0.0230.</p>
+
+      <h2 id="confusion">3. Confusion Matrices and Per-Class Metrics</h2>
+      <p>Each matrix pools the test predictions of all 10 folds (22,700 segments). Rows are true classes and columns are predicted classes; the diagonal is highlighted. Class supports: Background 4,100, Bebop 8,400, AR 8,100, Phantom 2,100.</p>
+
+      <h3>FGCS2019DNN</h3>
+      <table>
+        <caption>Table 5. FGCS2019DNN pooled confusion matrix.</caption>
+        <thead>
+          <tr><th>True \ Predicted</th><th class="num">Background</th><th class="num">Bebop</th><th class="num">AR</th><th class="num">Phantom</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Background</th><td class="num diag">4,094</td><td class="num">3</td><td class="num">2</td><td class="num">1</td></tr>
+          <tr><th scope="row">Bebop</th><td class="num">6</td><td class="num diag">8,270</td><td class="num">111</td><td class="num">13</td></tr>
+          <tr><th scope="row">AR</th><td class="num">1</td><td class="num">1,940</td><td class="num diag">6,151</td><td class="num">8</td></tr>
+          <tr><th scope="row">Phantom</th><td class="num">5</td><td class="num">1,399</td><td class="num">24</td><td class="num diag">672</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Table 6. FGCS2019DNN per-class metrics (pooled).</caption>
+        <thead>
+          <tr><th>Class</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Background</td><td class="num">0.9971</td><td class="num">0.9985</td><td class="num">0.9978</td></tr>
+          <tr><td>Bebop</td><td class="num">0.7122</td><td class="num">0.9845</td><td class="num">0.8265</td></tr>
+          <tr><td>AR</td><td class="num">0.9782</td><td class="num">0.7594</td><td class="num">0.8550</td></tr>
+          <tr><td>Phantom</td><td class="num">0.9683</td><td class="num">0.3200</td><td class="num">0.4810</td></tr>
+        </tbody>
+      </table>
+      <figure>
+        <img src="../assets/figures/report/fgcs_confusion_matrix.png" alt="FGCS2019DNN confusion matrix heat map">
+        <figcaption><strong>Figure 3.</strong> FGCS2019DNN pooled 10-fold confusion matrix. Background is almost perfectly separated, while 67% of Phantom segments are misclassified as Bebop.</figcaption>
+      </figure>
+
+      <h3>MC1DCNN</h3>
+      <table>
+        <caption>Table 7. MC1DCNN pooled confusion matrix.</caption>
+        <thead>
+          <tr><th>True \ Predicted</th><th class="num">Background</th><th class="num">Bebop</th><th class="num">AR</th><th class="num">Phantom</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Background</th><td class="num diag">4,096</td><td class="num">1</td><td class="num">0</td><td class="num">3</td></tr>
+          <tr><th scope="row">Bebop</th><td class="num">1</td><td class="num diag">6,827</td><td class="num">1,558</td><td class="num">14</td></tr>
+          <tr><th scope="row">AR</th><td class="num">0</td><td class="num">4,926</td><td class="num diag">3,174</td><td class="num">0</td></tr>
+          <tr><th scope="row">Phantom</th><td class="num">2</td><td class="num">1,140</td><td class="num">298</td><td class="num diag">660</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Table 8. MC1DCNN per-class metrics (pooled).</caption>
+        <thead>
+          <tr><th>Class</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Background</td><td class="num">0.9993</td><td class="num">0.9990</td><td class="num">0.9991</td></tr>
+          <tr><td>Bebop</td><td class="num">0.5295</td><td class="num">0.8127</td><td class="num">0.6412</td></tr>
+          <tr><td>AR</td><td class="num">0.6310</td><td class="num">0.3919</td><td class="num">0.4835</td></tr>
+          <tr><td>Phantom</td><td class="num">0.9749</td><td class="num">0.3143</td><td class="num">0.4753</td></tr>
+        </tbody>
+      </table>
+
+      <h3>VARDHAN-v3</h3>
+      <table>
+        <caption>Table 9. VARDHAN-v3 pooled confusion matrix.</caption>
+        <thead>
+          <tr><th>True \ Predicted</th><th class="num">Background</th><th class="num">Bebop</th><th class="num">AR</th><th class="num">Phantom</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Background</th><td class="num diag">3,410</td><td class="num">145</td><td class="num">526</td><td class="num">19</td></tr>
+          <tr><th scope="row">Bebop</th><td class="num">143</td><td class="num diag">6,418</td><td class="num">1,685</td><td class="num">154</td></tr>
+          <tr><th scope="row">AR</th><td class="num">620</td><td class="num">1,900</td><td class="num diag">5,515</td><td class="num">65</td></tr>
+          <tr><th scope="row">Phantom</th><td class="num">86</td><td class="num">696</td><td class="num">415</td><td class="num diag">903</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Table 10. VARDHAN-v3 per-class metrics (pooled).</caption>
+        <thead>
+          <tr><th>Class</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Background</td><td class="num">0.8007</td><td class="num">0.8317</td><td class="num">0.8159</td></tr>
+          <tr><td>Bebop</td><td class="num">0.7007</td><td class="num">0.7640</td><td class="num">0.7310</td></tr>
+          <tr><td>AR</td><td class="num">0.6774</td><td class="num">0.6809</td><td class="num">0.6791</td></tr>
+          <tr><td>Phantom</td><td class="num">0.7914</td><td class="num">0.4300</td><td class="num">0.5572</td></tr>
+        </tbody>
+      </table>
+      <figure>
+        <img src="../assets/figures/report/vardhan_v3_confusion_matrix.png" alt="VARDHAN-v3 confusion matrix heat map">
+        <figcaption><strong>Figure 4.</strong> VARDHAN-v3 pooled 10-fold confusion matrix.</figcaption>
+      </figure>
+      <h3>Observations</h3>
+      <ul>
+        <li>The <strong>Bebop/AR</strong> pair is the main source of confusion for all models; both are Parrot products using similar Wi-Fi-based links.</li>
+        <li><strong>Phantom</strong> recall is the weakest for every model (32.0% FGCS, 31.4% MC1DCNN, 43.0% VARDHAN-v3). VARDHAN-v3 has the highest Phantom recall and F1 (0.5572 vs 0.4810 and 0.4753).</li>
+        <li>The spectrum-based baselines separate <strong>Background</strong> almost perfectly (&gt; 99.8% recall) because they use both receiver bands; VARDHAN-v3, using a single-band 20.48 &micro;s slice, reaches 83.2%.</li>
+      </ul>
     </div>
   </main>
 
