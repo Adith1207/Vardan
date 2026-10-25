@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VARDHAN Models – VARDAN</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="title"><a href="../index.html">VARDAN</a></p>
+      <p class="subtitle">Towards an Indigenous, Portable, and Energy-Efficient Counter-UAS Detection System using Multi-Modal Artificial Intelligence</p>
+      <p class="affiliation">Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham &middot; Final Year B.Tech Project, Team 53</p>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Main">
+    <div class="container">
+      <ul>
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+        <li><a href="signal-analysis.html">Signal Analysis</a></li>
+        <li><a href="preprocessing.html">Preprocessing</a></li>
+        <li><a href="baselines.html">Baselines</a></li>
+        <li><a href="vardhan.html" aria-current="page">VARDHAN Models</a></li>
+        <li><a href="protocols.html">Evaluation Protocols</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="roadmap.html">Roadmap</a></li>
+        <li><a href="code.html">Code</a></li>
+        <li><a href="references.html">Team &amp; References</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1>VARDHAN RF Models</h1>
+      <p>VARDHAN is the project&rsquo;s own family of lightweight RF classifiers. It evolved through three versions. Each redesign was driven by a documented failure analysis of the previous version.</p>
+
+      <table>
+        <caption>Table 1. VARDHAN versions.</caption>
+        <thead>
+          <tr><th>Version</th><th>Source file</th><th>Key idea</th><th class="num">Parameters</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="#v1">VARDHAN-v1</a></td><td><code>src/models/vardhan.py</code> (<code>VardhanRFNet</code>)</td><td>Dual-branch dilated 1-D CNN on raw waveform</td><td class="num">6,692</td><td>Legacy prototype; majority-class collapse</td></tr>
+          <tr><td><a href="#v2a">VARDHAN-v2A</a></td><td><code>src/models/vardhan_v2a.py</code> (<code>VardhanV2A</code>)</td><td>Tri-branch temporal + fine spectral + sub-band, attention pooling</td><td class="num">69,559</td><td>Intermediate design</td></tr>
+          <tr><td><a href="#v3">VARDHAN-v3</a></td><td><code>src/models/vardhan_v3.py</code> (<code>VardhanV3</code>)</td><td>Dual-domain multi-scale network with SE attention and cross-domain gated fusion</td><td class="num">119,806</td><td>Final proposed model</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="v1">1. VARDHAN-v1 (Legacy Prototype)</h2>
+      <p>VARDHAN-v1 was the first lightweight prototype. It applies two shallow convolutional branches to a single-channel normalised waveform and collapses the result by global average pooling.</p>
+      <pre><code>Input (1, 2048)  raw waveform, global train-split Z-score
+Branch 1: Conv1d(1 -&gt; 16, k=3) -&gt; Conv1d(16 -&gt; 32, k=3, dilation=2)
+Branch 2: Conv1d(1 -&gt; 16, k=7) -&gt; Conv1d(16 -&gt; 32, k=5)
+Concat (64) -&gt; BatchNorm1d -&gt; MaxPool1d(4) -&gt; AdaptiveAvgPool1d(1)
+Linear(64 -&gt; 32) -&gt; Dropout(0.3) -&gt; Linear(32 -&gt; 4)
+Trainable parameters: 6,692
+Maximum receptive field: 11 samples</code></pre>
+
+      <h3>Forensic audit</h3>
+      <p>A forensic audit (<code>reports/vardhan_v1_forensic_audit.md</code>) examined v1&rsquo;s strict recording-level result (seed 42, 2 segments per test file, N = 146 test segments). The 28.77% accuracy was found to be entirely due to <strong>majority-class collapse</strong>: every test segment was predicted as Bebop, whose test prevalence is exactly 42/146 = 28.77%.</p>
+      <table>
+        <caption>Table 2. VARDHAN-v1 strict test confusion matrix (rows: true class, columns: predicted class).</caption>
+        <thead>
+          <tr><th>True \ Predicted</th><th class="num">Background</th><th class="num">AR</th><th class="num">Bebop</th><th class="num">Phantom</th><th class="num">Total</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Background</th><td class="num">0</td><td class="num">0</td><td class="num">40</td><td class="num">0</td><td class="num">40</td></tr>
+          <tr><th scope="row">AR</th><td class="num">0</td><td class="num">0</td><td class="num">42</td><td class="num">0</td><td class="num">42</td></tr>
+          <tr><th scope="row">Bebop</th><td class="num">0</td><td class="num">0</td><td class="num diag">42</td><td class="num">0</td><td class="num">42</td></tr>
+          <tr><th scope="row">Phantom</th><td class="num">0</td><td class="num">0</td><td class="num">22</td><td class="num">0</td><td class="num">22</td></tr>
+        </tbody>
+      </table>
+      <p>Accuracy 28.77%, macro-F1 0.1117, macro precision 0.0719, macro recall 0.2500, test loss 1.4699. Training accuracy stayed at about 41%, matching the Bebop share of the training set (126/308 = 40.91%), and validation loss remained near the four-class chance level (ln 4 &asymp; 1.386). The model was underfitting, not overfitting.</p>
+      <h3>Root causes identified</h3>
+      <ol>
+        <li><strong>Global average pooling</strong> (<code>AdaptiveAvgPool1d(1)</code>) averages all 512 temporal feature vectors into one, erasing burst timing and sequence structure.</li>
+        <li><strong>Tiny receptive field</strong> &ndash; 7 and 11 samples on the two branches, far too short to resolve RF modulation and packet structure.</li>
+        <li><strong>Insufficient capacity</strong> &ndash; 6,692 parameters.</li>
+        <li><strong>No explicit spectral information</strong> &ndash; no Fourier, complex or multi-band input.</li>
+      </ol>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>VARDAN &ndash; Team 53, Department of Computer Science &amp; Engineering, Amrita Vishwa Vidyapeetham. Project guide: Mr. Sumesh A K.</p>
+      <p>Source code released under the MIT License &copy; 2026. Source repository: <a href="https://github.com/Adith1207/Vardan">github.com/Adith1207/Vardan</a></p>
+    </div>
+  </footer>
+</body>
+</html>
