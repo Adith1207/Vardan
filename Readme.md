@@ -116,7 +116,8 @@ See `reports/VARDHAN_EVIDENCE_GAPS.md` for the complete list.
 Vardan/
 ├── configs/          # dataset, preprocessing, training, evaluation, logging YAML
 ├── data/             # raw/ (not tracked), interim/, processed/, metadata/, splits/
-├── docs/             # protocol and reproduction notes
+├── demo/             # interactive Streamlit demo of the trained VARDHAN-v3 checkpoint
+├── docs/             # protocol and reproduction notes, demo guide and audit
 ├── notebooks/        # 01–05 RF analysis notebooks, 09 planned robustness experiments
 ├── reports/          # IEEE report, audits, evidence gaps, bibliography
 ├── results/          # metrics, fold tables, confusion matrices, run configs
@@ -148,6 +149,21 @@ conda activate vardan
 # or pip
 pip install -r requirements.txt
 ```
+
+---
+
+## Interactive Research Demonstration
+
+To launch the interactive Streamlit + Plotly demonstration for the trained **VARDHAN-v3** RF drone classification model:
+
+```bash
+# Launch interactive research dashboard (from the repository root)
+streamlit run demo/app.py
+```
+
+The demo classifies real DroneRF recordings, so the raw dataset must be placed under `data/raw/DroneRF/` first.
+
+For complete documentation on model architecture, real sample selection, dual-domain feature visualization, and scientific provenance, see the [Demo Guide](docs/VARDAN_DEMO_GUIDE.md) and [Demo Audit Report](docs/VARDAN_DEMO_AUDIT.md).
 
 ---
 
