@@ -487,3 +487,49 @@ with tab_arch:
             df_params.loc[len(df_params)] = ["Total Trainable Parameters", df_params["Parameters"].sum()]
             st.dataframe(df_params, width="stretch", hide_index=True)
             st.success(f"Verified: Total parameters equal exactly {EXPECTED_PARAMETERS:,}.")
+
+
+# ------------------------------------------------------------------------------
+# TAB 4: SCIENTIFIC PROVENANCE & BENCHMARKS
+# ------------------------------------------------------------------------------
+with tab_eval:
+    st.markdown("### **Scientific Rigor & Generalization Analysis**")
+    st.info(
+        "**Core Research Finding:** A critical contribution of the VARDHAN research paper is uncovering the "
+        "dramatic generalization gap between **Standardized 10-Fold Cross-Validation** and **Strict Recording-Level Generalization**."
+    )
+
+    ev_col1, ev_col2 = st.columns([1, 1])
+
+    with ev_col1:
+        st.markdown("#### Protocol Comparison")
+        st.markdown(
+            """
+            | Benchmark Setting | VARDHAN-v3 | FGCS 2019 DNN | MC1DCNN | Interpretation |
+            | :--- | :---: | :---: | :---: | :--- |
+            | **Standardized 10-Fold CV** | **71.57% ± 1.25%** | 84.52% ± 0.73% | 65.01% ± 5.35% | Segments from same recording shared across folds; models partially memorize recording channel noise. |
+            | **Strict Recording-Level** | **24.79%** | 28.22%\\* | 28.77%\\* | Completely unseen drone flights; exposes the true out-of-distribution generalization barrier. |
+            """
+        )
+        st.caption(
+            "\\* FGCS 2019 DNN and MC1DCNN strict results come from the historical strict benchmark "
+            "(5 windows per recording); VARDHAN-v3 uses 50 windows per recording."
+        )
+        st.caption(
+            "Note: The default demo checkpoint (`checkpoint_fold_1.pt`) represents Fold 1 of the Standardized 10-Fold "
+            "benchmark (71.54% test accuracy)."
+        )
+
+    with ev_col2:
+        # Load and display precomputed confusion matrix if available
+        cm_path = RESULTS_DIR / "vardhan_v3_per_segment_10fold" / "confusion_matrix.csv"
+        if cm_path.exists():
+            cm_df = pd.read_csv(cm_path, index_col=0)
+            fig_cm = plot_confusion_matrix_heatmap(
+                cm_df.to_numpy(),
+                class_names=list(CLASS_MAPPING.values()),
+                title="Aggregate Standardized 10-Fold Confusion Matrix (22,700 Segments)",
+            )
+            st.plotly_chart(fig_cm, width="stretch")
+        else:
+            st.warning("Precomputed confusion matrix CSV not found.")
