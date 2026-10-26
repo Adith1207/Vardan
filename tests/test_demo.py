@@ -29,6 +29,9 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+# The demo's plotting dependency is optional for the rest of the repository
+pytest.importorskip("plotly", reason="plotly is required for the demo (pip install -r requirements.txt)")
+
 from demo.config import (
     CLASS_MAPPING,
     DEFAULT_CHECKPOINT_PATH,
