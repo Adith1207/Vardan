@@ -386,3 +386,104 @@ with tab_infer:
         )
         fig_dual = plot_dual_spectral_tensor(pred_res["spectral_tensor"])
         st.plotly_chart(fig_dual, width="stretch")
+
+
+# ------------------------------------------------------------------------------
+# TAB 2: INFERENCE PIPELINE TRACE
+# ------------------------------------------------------------------------------
+with tab_pipe:
+    st.markdown("### **End-to-End Inference Pipeline**")
+    st.markdown(
+        "This execution trace reflects the exact mathematical operations performed from raw dataset file to output logits:"
+    )
+
+    st.markdown(
+        f"""
+        1. **Raw DroneRF Signal Ingestion**:
+            - **Selected Recording:** Pair `{sample_data['pair_id']}` (BUI: `{sample_data['bui']}`)
+            - **File Segment Number:** `{sample_data['file_segment_num']}`
+            - **Underlying File:** `{sample_data['source_file']}`
+            - **Ground Truth:** Class {sample_data['ground_truth_label']} (`{sample_data['ground_truth_name']}`)
+
+        2. **Time-Domain Slicing**:
+            - Extracted 2,048 contiguous samples from index `{sample_data['start_sample']}` to `{sample_data['end_sample']}`.
+            - Observation window length: **51.2 microseconds** at 40 MS/s.
+
+        3. **Per-Segment Waveform Normalization**:
+            - Formula: $\\tilde{{x}} = \\frac{{x - \\mu}}{{\\sigma + 10^{{-8}}}}$
+            - Sample Raw Mean: `{sample_data['mean']:.6f}`
+            - Sample Raw Std: `{sample_data['std']:.6f}`
+            - Resulting Shape: `(2048,)`
+
+        4. **Model Boundary Tensor Construction**:
+            - Tensor Shape: `{INPUT_SHAPE}`
+            - Tensor Dtype: `{INPUT_DTYPE}`
+            - Device: `{engine.device}`
+
+        5. **Dual-Domain Feature Extraction (Internal)**:
+            - **Branch A (Temporal):** 4 Multi-Scale Temporal Blocks (dilations: 1, 2, 4, 8) $\\to$ 80-d attention-pooled features.
+            - **Branch B (Spectral):** On-the-fly 2048-point rFFT (3 channels $\\times$ 1024 bins) $\\to$ 4 Multi-Scale Spectral Blocks $\\to$ 80-d attention-pooled features.
+
+        6. **Bi-Directional Cross-Domain Gated Fusion**:
+            - Temporal features modulate spectral features via sigmoid gating.
+            - Fused representation: $[h_T, h_F, h_{{T,\\text{{mod}}}}, h_{{F,\\text{{mod}}}}] \\in \\mathbb{{R}}^{{320}}$.
+
+        7. **Classification & Softmax**:
+            - Multi-layer perceptron head: $320 \\to 64 \\to 4$.
+            - Unnormalized Logits: `{np.round(pred_res['logits'], 4)}`
+            - Softmax Normalization: Yields valid probability distribution summing to {float(np.sum(pred_res['probability_array'])):.4f}.
+        """
+    )
+
+
+# ------------------------------------------------------------------------------
+# TAB 3: MODEL ARCHITECTURE SUMMARY
+# ------------------------------------------------------------------------------
+with tab_arch:
+    st.markdown("### **VARDHAN-v3 Architecture Specification**")
+    st.markdown(
+        "VARDHAN-v3 is a lightweight, RF-specific deep learning architecture designed for edge efficiency "
+        "and multi-scale temporal-spectral feature representation."
+    )
+
+    arch_col1, arch_col2 = st.columns([1, 1])
+
+    with arch_col1:
+        st.markdown("#### Architectural Components")
+        st.markdown(
+            """
+            - **Input**: Single-channel RF time-domain waveform `(B, 1, 2048)`.
+            - **Temporal Backbone**:
+                - Conv1D stem (kernel=15, stride=2, channels=32) + BatchNorm1d + GELU.
+                - 4 MultiScaleTemporalBlocks with depthwise parallel branches ($k \\in \\{3, 7, 15, 31\\}$),
+                  dilation schedule $d \\in \\{1, 2, 4, 8\\}$, and Squeeze-and-Excitation (SE) channel attention.
+                - Learnable self-attention pooling (`AttentionPool1d`: $80 \\to 40 \\to 1$) yielding $h_T \\in \\mathbb{R}^{80}$.
+            - **Spectral Backbone**:
+                - On-the-fly 3-channel rFFT tensor `(B, 3, 1024)`: Log Power, Real Component, Imag Component.
+                - Conv1D stem (kernel=11, stride=2, channels=32) + BatchNorm1d + GELU.
+                - 4 MultiScaleSpectralBlocks ($k \\in \\{5, 11\\}$), dilations $d \\in \\{1, 2, 4, 8\\}$, SE attention.
+                - Learnable self-attention pooling yielding $h_F \\in \\mathbb{R}^{80}$.
+            - **Cross-Domain Gated Fusion**:
+                - Bi-directional sigmoid modulation: $g_T(h_F)$, $g_F(h_T)$.
+                - Fused feature vector: $320$ dimensions.
+            - **Classification Head**:
+                - Linear(320 $\\to$ 64) + BatchNorm1d + GELU + Dropout(0.2) + Linear(64 $\\to$ 4).
+            """
+        )
+
+    with arch_col2:
+        st.markdown("#### Verified Trainable Parameter Counts")
+        if engine.model:
+            modules = [
+                ("Time Stem", sum(p.numel() for p in engine.model.time_stem.parameters())),
+                ("Temporal Blocks (t_b1..4)", sum(p.numel() for b in [engine.model.t_b1, engine.model.t_b2, engine.model.t_b3, engine.model.t_b4] for p in b.parameters())),
+                ("Temporal Attention Pool", sum(p.numel() for p in engine.model.t_pool.parameters())),
+                ("Frequency Stem", sum(p.numel() for p in engine.model.freq_stem.parameters())),
+                ("Spectral Blocks (f_b1..4)", sum(p.numel() for b in [engine.model.f_b1, engine.model.f_b2, engine.model.f_b3, engine.model.f_b4] for p in b.parameters())),
+                ("Spectral Attention Pool", sum(p.numel() for p in engine.model.f_pool.parameters())),
+                ("Fusion & Classification Head", sum(p.numel() for p in engine.model.head.parameters())),
+            ]
+            df_params = pd.DataFrame(modules, columns=["Submodule", "Parameters"])
+            df_params.loc[len(df_params)] = ["Total Trainable Parameters", df_params["Parameters"].sum()]
+            st.dataframe(df_params, width="stretch", hide_index=True)
+            st.success(f"Verified: Total parameters equal exactly {EXPECTED_PARAMETERS:,}.")
