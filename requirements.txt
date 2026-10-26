@@ -6,6 +6,7 @@ numpy>=1.24.0
 scipy>=1.10.0
 pandas>=2.0.0
 h5py>=3.8.0
+numba>=0.59.0
 
 # Visualization & Progress Tracking
 matplotlib>=3.7.0
@@ -20,3 +21,7 @@ pytest>=7.3.0
 ipykernel>=6.23.0
 black>=23.3.0
 ruff>=0.0.270
+
+# Interactive Demo (streamlit run demo/app.py)
+streamlit>=1.51.0
+plotly>=5.18.0
