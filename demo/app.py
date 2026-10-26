@@ -245,3 +245,144 @@ try:
 except Exception as e:
     st.error(f"Inference execution failed: {e}")
     st.stop()
+
+
+# ==============================================================================
+# TABS INTERFACE
+# ==============================================================================
+
+tab_infer, tab_pipe, tab_arch, tab_eval = st.tabs([
+    "🎯 Live Signal & Prediction",
+    "🔄 Inference Pipeline",
+    "🧠 Model Architecture",
+    "📊 Scientific Provenance & Evaluation",
+])
+
+# ------------------------------------------------------------------------------
+# TAB 1: LIVE INFERENCE & SIGNAL VISUALIZATION
+# ------------------------------------------------------------------------------
+with tab_infer:
+    # Summary KPI Cards
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Ground Truth</div>
+                <div class="metric-value">{sample_data['ground_truth_name']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col2:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Predicted Class</div>
+                <div class="metric-value">{pred_res['predicted_name']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col3:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Posterior Probability</div>
+                <div class="metric-value">{pred_res['confidence']*100:.2f}%</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col4:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Inference Latency</div>
+                <div class="metric-value">{pred_res['latency_ms']:.2f} ms</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col5:
+        is_match = pred_res["predicted_label"] == sample_data["ground_truth_label"]
+        match_html = (
+            '<span class="match-tag-success">✅ CORRECT</span>'
+            if is_match
+            else '<span class="match-tag-fail">⚠️ MISMATCH</span>'
+        )
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Prediction Status</div>
+                <div class="metric-value">{match_html}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### **1. Real RF Input Signal Characterization**")
+    sig_col1, sig_col2 = st.columns(2)
+
+    with sig_col1:
+        fig_wave = plot_waveform(
+            sample_data["normalized_waveform"],
+            sampling_rate_hz=SAMPLING_RATE_HZ,
+            title=f"Normalized Time-Domain Voltage (Window: {sample_data['start_sample']}–{sample_data['end_sample']})",
+        )
+        st.plotly_chart(fig_wave, width="stretch")
+        st.caption(
+            f"⏱️ **Duration:** {SEGMENT_DURATION_US:.1f} µs (2,048 samples @ 40 MSps baseband). "
+            f"**Normalized:** μ={np.mean(sample_data['normalized_waveform']):.2e}, σ={np.std(sample_data['normalized_waveform']):.2f}"
+        )
+
+    with sig_col2:
+        fig_psd = plot_power_spectrum(
+            sample_data["raw_waveform"],
+            sampling_rate_hz=SAMPLING_RATE_HZ,
+            title="Real-Valued FFT Power Spectral Density (0 to 20 MHz Baseband)",
+        )
+        st.plotly_chart(fig_psd, width="stretch")
+        st.caption(
+            "📡 2048-point positive-frequency Periodogram PSD. Drones exhibit distinct transient burst spectral peaks."
+        )
+
+    st.markdown("### **2. Classification Output & Posterior Confidence**")
+    prob_col1, prob_col2 = st.columns([3, 2])
+
+    with prob_col1:
+        fig_probs = plot_class_probabilities(
+            pred_res["probabilities"],
+            ground_truth_name=sample_data["ground_truth_name"],
+        )
+        st.plotly_chart(fig_probs, width="stretch")
+
+    with prob_col2:
+        st.markdown("#### Class Interpretation & Description")
+        for cls_idx, cls_str in CLASS_MAPPING.items():
+            prob_pct = pred_res["probabilities"][cls_str] * 100.0
+            is_pred = cls_str == pred_res["predicted_name"]
+            is_gt = cls_str == sample_data["ground_truth_name"]
+
+            badge = ""
+            if is_pred and is_gt:
+                badge = " 🧠 **[PREDICTED & TRUE]**"
+            elif is_pred:
+                badge = " 🔵 **[PREDICTED]**"
+            elif is_gt:
+                badge = " 🎯 **[GROUND TRUTH]**"
+
+            st.markdown(
+                f"- **{cls_str}** (`{prob_pct:.1f}%`){badge}<br>"
+                f"<small style='color:#94A3B8;'>{CLASS_DESCRIPTIONS[cls_idx]}</small>",
+                unsafe_allow_html=True,
+            )
+
+    # Expandable Dual-Domain Internal Representation
+    with st.expander("🔬 View Model Internal Dual-Domain Representation (On-The-Fly FFT Stem)", expanded=False):
+        st.markdown(
+            "Inside `VardhanV3`, the model computes a deterministic 3-channel dual-Fourier representation "
+            "directly from the input waveform without requiring pre-extracted spectral files:"
+        )
+        fig_dual = plot_dual_spectral_tensor(pred_res["spectral_tensor"])
+        st.plotly_chart(fig_dual, width="stretch")
