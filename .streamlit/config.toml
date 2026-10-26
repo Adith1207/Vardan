@@ -1,0 +1,7 @@
+# Streamlit settings for the interactive demo (streamlit run demo/app.py from the repository root).
+# The demo's custom styling and Plotly figures are designed for the dark theme.
+[theme]
+base = "dark"
+
+[browser]
+gatherUsageStats = false
